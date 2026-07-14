@@ -22,6 +22,7 @@ class Config:
     # AI Story Points Field ID (optional - set after creating custom field in Jira)
     AI_STORY_POINTS_FIELD_ID = os.getenv('AI_STORY_POINTS_FIELD_ID', '')
     
+    
     # Teams Configuration
     # Format: team_name:board_id:project_key
     TEAMS_CONFIG = os.getenv('TEAMS', 'ELECOM:58:ELECOM')

@@ -34,6 +34,14 @@ Create `.env.local` in the `web` directory:
 NEXT_PUBLIC_API_BASE_URL=http://localhost:5000
 ```
 
+Then create a root `.env` file with your Jira credentials:
+
+```env
+JIRA_SERVER=https://your-domain.atlassian.net
+JIRA_EMAIL=your-email@example.com
+JIRA_API_TOKEN=your-jira-api-token
+```
+
 ### 3. Start the API Server
 
 In the project root directory:
@@ -62,7 +70,7 @@ The dashboard will be available at `http://localhost:4000`
 
 1. **Select a Board**: Choose a board from the dropdown
 2. **Generate Report**: Click "Generate Report" button
-3. **View Metrics**: 
+3. **View Metrics**:
    - AI Usage Metrics pie chart
    - Developer Commits pie chart
    - Story Commits bar chart
@@ -134,7 +142,6 @@ npm start
 
 - Check browser console for errors
 - Ensure metrics data is being returned from API
-- Verify commit metrics are configured (GitHub token or git repo)
 
 ## Technologies Used
 

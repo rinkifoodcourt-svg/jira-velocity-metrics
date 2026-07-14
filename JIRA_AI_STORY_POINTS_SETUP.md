@@ -5,7 +5,7 @@
 1. **Go to Jira Administration**
    - Click on your profile icon (bottom left)
    - Select **"Settings"** → **"Issues"** → **"Custom fields"**
-   - Or navigate directly: `https://tailored-prod.atlassian.net/jira/settings/fields`
+   - Or navigate directly: `https://rajeshkuchinda.atlassian.net/jira/settings/fields`
 
 2. **Create New Custom Field**
    - Click **"Create custom field"** button
@@ -40,6 +40,7 @@ AI_STORY_POINTS_FIELD_ID=customfield_10XXX
 ## Step 3: Populate the Field
 
 For each issue in your sprints:
+
 - Fill in **"Story Points"** (actual points with AI)
 - Fill in **"AI Story Points"** (estimated points without AI)
 - The difference shows time/productivity saved
@@ -47,6 +48,7 @@ For each issue in your sprints:
 ## Example Usage
 
 **Issue: "Implement Email Notifications"**
+
 - **Story Points (with AI):** 2
 - **AI Story Points (without AI):** 5
 - **Time Saved:** 3 story points (60% reduction)

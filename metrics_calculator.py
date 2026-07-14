@@ -109,6 +109,7 @@ class MetricsCalculator:
         completed_story_points = metrics.get('completed_story_points', 0) or 0
         
         # Calculate total points saved from labels (AI1, AI2, etc.)
+        # Preserve signed values so time saved and loss are both reflected correctly.
         # Use ai_points_saved field if available, otherwise extract from labels
         def extract_ai_points_from_labels(labels):
             """Extract AI points saved from labels (AI1 = 1 point, AI2 = 2 points, etc.)
@@ -151,27 +152,30 @@ class MetricsCalculator:
         ai_labeled_issues = []
         
         for issue in issues:
-            # Prefer stored ai_points_saved field, fallback to extracting from labels
-            ai_points_saved = issue.get('ai_points_saved', 0) or 0
-            
-            if ai_points_saved == 0:
-                # Fallback: extract from labels if not stored
-                labels = issue.get('labels', [])
-                ai_points_saved = extract_ai_points_from_labels(labels) or 0
-            
-            if ai_points_saved > 0:
-                # Debug: Track this issue
+            story_points_value = issue.get('story_points', 0) or 0
+            ai_story_points_value = issue.get('ai_story_points')
+            ai_points_saved = issue.get('ai_points_saved')
+
+            if ai_story_points_value is not None and story_points_value is not None:
+                ai_points_saved = ai_story_points_value - story_points_value
+            elif ai_points_saved is None or (ai_points_saved == 0 and ai_story_points_value is None):
+                ai_points_saved = extract_ai_points_from_labels(issue.get('labels', []))
+
+            if ai_points_saved is None:
+                ai_points_saved = 0
+
+            if ai_points_saved != 0:
                 ai_labeled_issues.append({
                     'key': issue.get('key', 'Unknown'),
                     'ai_points_saved': ai_points_saved,
+                    'ai_story_points': ai_story_points_value,
                     'labels': issue.get('labels', []),
-                    'story_points': issue.get('story_points', 0)
+                    'story_points': story_points_value
                 })
-                total_points_saved += ai_points_saved
-                
-                # If issue is completed, add to completed points saved
-                if issue.get('status', '').lower() in ['done', 'closed', 'resolved']:
-                    completed_points_saved += ai_points_saved
+            total_points_saved += ai_points_saved
+
+            if issue.get('status', '').lower() in ['done', 'closed', 'resolved']:
+                completed_points_saved += ai_points_saved
         
         # Debug output
         if ai_labeled_issues:
@@ -183,16 +187,73 @@ class MetricsCalculator:
         # AI Story Points = Actual Story Points + Points Saved from Labels
         total_ai_story_points = total_story_points + total_points_saved
         completed_ai_story_points = completed_story_points + completed_points_saved
-        
+         
         # Time saved is just the points from labels
         time_saved_total = total_points_saved
         time_saved_completed = completed_points_saved
-        
+         
         # Calculate percentage time saved
         time_saved_percent = 0
         if total_ai_story_points > 0:
             time_saved_percent = round((time_saved_total / total_ai_story_points) * 100, 2)
-        
+ 
+        # Aggregate AI usage by assignee
+        ai_usage_by_assignee = {}
+        for issue in issues:
+            assignee = issue.get('assignee') or 'Unassigned'
+            story_points_value = issue.get('story_points', 0) or 0
+            ai_story_points_value = issue.get('ai_story_points')
+            ai_points_saved = issue.get('ai_points_saved')
+ 
+            if ai_story_points_value is not None and story_points_value is not None:
+                ai_points_saved = ai_story_points_value - story_points_value
+            elif ai_points_saved is None or (ai_points_saved == 0 and ai_story_points_value is None):
+                ai_points_saved = extract_ai_points_from_labels(issue.get('labels', []))
+ 
+            if ai_story_points_value is None and ai_points_saved is not None and story_points_value is not None:
+                ai_story_points_value = story_points_value + ai_points_saved
+ 
+            if ai_story_points_value is None and story_points_value is not None:
+                ai_story_points_value = story_points_value
+ 
+            if ai_points_saved is None:
+                ai_points_saved = 0
+ 
+            issue_summary = {
+                'key': issue.get('key', 'Unknown'),
+                'summary': issue.get('summary', ''),
+                'story_points': story_points_value,
+                'ai_story_points': ai_story_points_value,
+                'time_saved': ai_points_saved,
+                'time_saved_percent': round((ai_points_saved / ai_story_points_value * 100), 2) if ai_story_points_value and ai_points_saved else 0,
+                'status': issue.get('status', ''),
+                'labels': issue.get('labels', [])
+            }
+ 
+            assignee_data = ai_usage_by_assignee.get(assignee)
+            if not assignee_data:
+                assignee_data = {
+                    'assignee': assignee,
+                    'total_story_points': 0,
+                    'total_ai_story_points': 0,
+                    'total_time_saved': 0,
+                    'issues': []
+                }
+            assignee_data['total_story_points'] += story_points_value
+            assignee_data['total_ai_story_points'] += ai_story_points_value or 0
+            assignee_data['total_time_saved'] += ai_points_saved
+            assignee_data['issues'].append(issue_summary)
+            ai_usage_by_assignee[assignee] = assignee_data
+ 
+        ai_usage_by_assignee_list = []
+        for assignee_name, data in ai_usage_by_assignee.items():
+            total_ai_points = data['total_ai_story_points'] or 0
+            time_saved = data['total_time_saved'] or 0
+            data['time_saved_percent'] = round((time_saved / total_ai_points) * 100, 2) if total_ai_points else 0
+            ai_usage_by_assignee_list.append(data)
+ 
+        ai_usage_by_assignee_list.sort(key=lambda item: item.get('total_time_saved', 0), reverse=True)
+ 
         return {
             'sprint_name': sprint.get('name', 'Unknown'),
             'committed_story_points': total_story_points,
@@ -210,6 +271,7 @@ class MetricsCalculator:
             'time_saved_total': round(time_saved_total, 2),
             'time_saved_completed': round(time_saved_completed, 2),
             'time_saved_percent': time_saved_percent,
+            'ai_usage_by_assignee': ai_usage_by_assignee_list,
             'has_ai_data': total_ai_story_points > 0
         }
     
