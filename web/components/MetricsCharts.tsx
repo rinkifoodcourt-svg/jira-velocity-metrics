@@ -139,9 +139,16 @@ export default function MetricsCharts({
   const storyCommitsData = Object.entries(
     metrics.commitMetrics?.storyCommits || {},
   )
-    .map(([name, value]) => ({ name, value }))
+    .map(([name, value]) => ({ name, value: Number(value) || 0 }))
+    .filter((item) => item.value > 0)
     .sort((a, b) => b.value - a.value)
     .slice(0, 10);
+
+  const storyCommitDetailsRaw = metrics.commitMetrics?.storyCommitDetails || {};
+  const storyCommitDetailsData = storyCommitsData.map((story) => ({
+    ...story,
+    details: (storyCommitDetailsRaw[story.name] || []).slice(0, 3),
+  }));
 
   // Prepare developer story points data
   const developerStoryPointsRaw =
@@ -1204,6 +1211,66 @@ export default function MetricsCharts({
               <Bar dataKey="value" fill="#667eea" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
+
+          <div style={{ marginTop: "1.25rem" }}>
+            <h4
+              style={{
+                margin: "0 0 0.75rem 0",
+                color: "#111827",
+                fontSize: "1rem",
+                fontWeight: "700",
+              }}
+            >
+              Linked commit details
+            </h4>
+            <div style={{ display: "grid", gap: "0.75rem" }}>
+              {storyCommitDetailsData.map((story) => (
+                <div
+                  key={story.name}
+                  style={{
+                    border: "1px solid rgba(148, 163, 184, 0.2)",
+                    borderRadius: "10px",
+                    padding: "0.9rem 1rem",
+                    background: "white",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: "0.75rem",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    <strong style={{ color: "#0f172a" }}>{story.name}</strong>
+                    <span style={{ color: "#2563eb", fontWeight: 700 }}>
+                      {story.value} commit{story.value === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                  {story.details.length > 0 ? (
+                    <ul style={{ margin: 0, paddingLeft: "1rem", color: "#475569" }}>
+                      {story.details.map((detail) => (
+                        <li key={`${story.name}-${detail.sha}`} style={{ marginBottom: "0.35rem" }}>
+                          <span style={{ color: "#0f172a", fontWeight: 600 }}>
+                            {detail.sha}
+                          </span>{" "}
+                          {detail.message}
+                          <span style={{ color: "#64748b", display: "block", fontSize: "0.85rem" }}>
+                            {detail.author} • {detail.date}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <span style={{ color: "#64748b" }}>
+                      No linked commit details found for this story.
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

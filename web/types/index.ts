@@ -46,12 +46,20 @@ export interface DeveloperStoryPointsByIssue {
   issues: StoryPointDetail[]
 }
 
+export interface CommitDetail {
+  sha: string
+  message: string
+  author: string
+  date: string
+}
+
 export interface CommitMetrics {
   totalCommits: number
   storiesWithCommits: number
   developerCommits: Record<string, number>
   developerTicketCounts?: Record<string, number>
   storyCommits: Record<string, number>
+  storyCommitDetails?: Record<string, CommitDetail[]>
   developerStoryPoints?: Record<string, number>
   developerStoryPointsByIssue?: DeveloperStoryPointsByIssue[]
   totalCommitsScanned?: number

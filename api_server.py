@@ -143,6 +143,8 @@ def api_metrics(board_id):
         except Exception as imp_err:
             return jsonify({'error': f'Jira client not available: {imp_err}'}), 500
 
+        from commit_metrics import collect_story_commit_details
+
         jira = JiraClient()
         sprint = jira.get_current_sprint(board_id)
         if not sprint:
@@ -190,8 +192,12 @@ def api_metrics(board_id):
         if metrics.get('issues'):
             try:
                 issues = metrics.get('issues', [])
+                issue_keys = [issue.get('key') for issue in issues if issue.get('key')]
+                story_commit_details = collect_story_commit_details(issue_keys)
+
                 developer_commits = {}
                 story_commits = {}
+                story_commit_details_payload = {}
                 developer_story_points = {}
                 developer_ticket_sets = {}
 
@@ -200,8 +206,10 @@ def api_metrics(board_id):
                     story_points = issue.get('story_points', 0)
                     key = issue.get('key', 'Unknown')
 
+                    linked_commits = story_commit_details.get(key, []) if key else []
                     if key:
-                        story_commits[key] = story_commits.get(key, 0) + 1
+                        story_commits[key] = len(linked_commits)
+                        story_commit_details_payload[key] = linked_commits
 
                     if assignee != 'Unassigned':
                         if assignee not in developer_ticket_sets:
@@ -210,7 +218,7 @@ def api_metrics(board_id):
                             developer_ticket_sets[assignee].add(key)
                         if story_points:
                             developer_story_points[assignee] = developer_story_points.get(assignee, 0) + story_points
-                        developer_commits[assignee] = developer_commits.get(assignee, 0) + 1
+                        developer_commits[assignee] = developer_commits.get(assignee, 0) + len(linked_commits)
 
                 total_commits = sum(developer_commits.values()) if developer_commits else 0
 
@@ -258,6 +266,7 @@ def api_metrics(board_id):
                         'developerCommits': developer_commits,
                         'developerTicketCounts': developer_ticket_counts,
                         'storyCommits': story_commits,
+                        'storyCommitDetails': story_commit_details_payload,
                         'developerStoryPoints': developer_story_points,
                         'developerStoryPointsByIssue': developer_story_points_by_issue
                     }
