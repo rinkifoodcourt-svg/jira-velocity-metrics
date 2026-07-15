@@ -20,17 +20,32 @@ interface MetricsChartsProps {
   isLoading?: boolean;
 }
 
+const theme = {
+  primary: "#2563EB",
+  primaryHover: "#1D4ED8",
+  primaryLight: "#DBEAFE",
+  success: "#10B981",
+  warning: "#F59E0B",
+  danger: "#EF4444",
+  chartAiSaved: "#06B6D4",
+  chartActualAi: "#8B5CF6",
+  surface: "#FFFFFF",
+  background: "#F8FAFC",
+  text: "#111827",
+  muted: "#475569",
+};
+
 const COLORS = [
-  "#667eea",
-  "#764ba2",
-  "#f093fb",
-  "#4facfe",
-  "#00f2fe",
-  "#43e97b",
-  "#fa709a",
-  "#fee140",
-  "#30cfd0",
-  "#a8edea",
+  theme.chartAiSaved,
+  theme.primary,
+  theme.success,
+  theme.warning,
+  theme.chartActualAi,
+  theme.danger,
+  theme.primaryLight,
+  theme.primaryHover,
+  theme.success,
+  theme.chartAiSaved,
 ];
 
 export default function MetricsCharts({
@@ -59,38 +74,32 @@ export default function MetricsCharts({
 
   const summaryCards = [
     {
-      title: "Sprint",
-      value: metrics.currentSprint?.sprintName || "Current sprint",
-      subtitle: "Current board sprint",
-    },
-    {
-      title: "Committed Points",
+      title: "Story Points Committed",
       value: `${committedPoints.toFixed(1)} SP`,
-      subtitle: `Completed ${completedPoints.toFixed(1)} SP (${completionRate.toFixed(0)}%)`,
+      subtitle: "Total story points committed this sprint",
     },
     {
-      title: "AI Time Saved",
-      value: `${aiSaved.toFixed(1)} SP`,
-      subtitle: `${metrics.aiMetrics?.timeSavedPercent?.toFixed(1) || 0}% reduction`,
+      title: "Story Points Completed",
+      value: `${completedPoints.toFixed(1)} SP`,
+      subtitle: "Total story points completed this sprint",
     },
     {
-      title: "Code Activity",
+      title: "Completion Rate",
+      value: `${completionRate.toFixed(1)}%`,
+      subtitle: `${completedPoints.toFixed(1)} SP completed`,
+    },
+    {
+      title: "Total Commits",
       value: `${totalCommits} commits`,
       subtitle: `${storiesWithCommits} stories referenced`,
     },
   ];
 
-  const sectionCardStyle = {
-    background: "white",
-    borderRadius: "16px",
-    padding: "1.5rem",
-    border: "1px solid rgba(148, 163, 184, 0.2)",
-    boxShadow: "0 12px 30px rgba(148, 163, 184, 0.08)",
-  };
+  const sectionCardStyle = {};
 
   const aiUsageData = [
-    { name: "Actual with AI", value: actualWithAI },
-    { name: "AI Saved", value: aiSaved },
+    { name: "Actual with AI", value: actualWithAI, unit: "story points" },
+    { name: "AI Saved", value: aiSaved, unit: "story points" },
   ].filter((item) => item.value > 0);
 
   // Prepare developer commits data
@@ -116,6 +125,7 @@ export default function MetricsCharts({
           rawTicketCount !== undefined && rawTicketCount !== null
             ? Number(rawTicketCount) || 0
             : 0,
+        unit: "commits",
       };
     })
     .filter((item) => {
@@ -139,22 +149,16 @@ export default function MetricsCharts({
   const storyCommitsData = Object.entries(
     metrics.commitMetrics?.storyCommits || {},
   )
-    .map(([name, value]) => ({ name, value: Number(value) || 0 }))
+    .map(([name, value]) => ({ name, value: Number(value) || 0, unit: "commits" }))
     .filter((item) => item.value > 0)
     .sort((a, b) => b.value - a.value)
     .slice(0, 10);
-
-  const storyCommitDetailsRaw = metrics.commitMetrics?.storyCommitDetails || {};
-  const storyCommitDetailsData = storyCommitsData.map((story) => ({
-    ...story,
-    details: (storyCommitDetailsRaw[story.name] || []).slice(0, 3),
-  }));
 
   // Prepare developer story points data
   const developerStoryPointsRaw =
     metrics.commitMetrics?.developerStoryPoints || {};
   const developerStoryPointsData = Object.entries(developerStoryPointsRaw)
-    .map(([name, value]) => ({ name, value: Number(value) || 0 }))
+    .map(([name, value]) => ({ name, value: Number(value) || 0, unit: "story points" }))
     .filter((item) => {
       // Filter out invalid/placeholder developer names (same as commits)
       if (item.value <= 0) return false;
@@ -180,28 +184,29 @@ export default function MetricsCharts({
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
+      const tooltipUnit = payload[0]?.payload?.unit || "story points";
       return (
         <div
           style={{
-            background: "white",
+            background: theme.surface,
             padding: "0.75rem",
-            border: "1px solid #e2e8f0",
+            border: `1px solid ${theme.primaryLight}`,
             borderRadius: "6px",
-            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+            boxShadow: "0 2px 4px rgba(37, 99, 235, 0.1)",
           }}
         >
-          <p style={{ margin: 0, fontWeight: "600", color: "#2d3748" }}>
+          <p style={{ margin: 0, fontWeight: "600", color: theme.text }}>
             {payload[0].name}
           </p>
           <p
             style={{
               margin: "0.25rem 0 0 0",
-              color: "#667eea",
+              color: theme.primary,
               fontWeight: "600",
             }}
           >
             {payload[0].value}{" "}
-            {payload[0].name.includes("Commit") ? "commits" : "story points"}
+            {tooltipUnit}
           </p>
         </div>
       );
@@ -210,161 +215,71 @@ export default function MetricsCharts({
   };
 
   return (
-    <div style={{ marginTop: "2rem" }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "2rem",
-          gap: "1rem",
-          flexWrap: "wrap",
-        }}
-      >
+    <div className="mt-4">
+      <div className="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3 mb-4">
         <div>
-          <h2
-            style={{
-              fontSize: "1.75rem",
-              fontWeight: "700",
-              color: "#1f2937",
-              margin: 0,
-            }}
-          >
-            Metrics Dashboard
-          </h2>
-          <p
-            style={{
-              margin: "0.5rem 0 0 0",
-              color: "#4b5563",
-              fontSize: "0.95rem",
-              maxWidth: "680px",
-            }}
-          >
+          <h2 className="h3 fw-bold mb-2">Metrics Dashboard</h2>
+          <p className="dashboard-subtle mb-0" style={{ maxWidth: "680px" }}>
             A sharper view of AI story point savings, developer contribution,
             and sprint efficiency for your Jira board.
           </p>
         </div>
         {isLoading && (
-          <div
-            style={{
-              padding: "0.5rem 1rem",
-              background: "#e0f2fe",
-              color: "#0c4a6e",
-              borderRadius: "9999px",
-              fontSize: "0.95rem",
-              fontWeight: "600",
-            }}
-          >
+          <div className="badge rounded-pill px-3 py-2" style={{ background: "rgba(37, 99, 235, 0.12)", color: theme.primaryHover }}>
             🔄 Refreshing metrics...
           </div>
         )}
       </div>
 
-      <div
-        style={{
-          marginTop: "2rem",
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "1rem",
-        }}
-      >
-        <div
-          style={{
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-            padding: "1.5rem",
-            borderRadius: "12px",
-            color: "white",
-          }}
-        >
-          <div style={{ fontSize: "0.9rem", opacity: 0.9 }}>
-            Story Points Committed
-          </div>
-          <div
-            style={{
-              fontSize: "2rem",
-              fontWeight: "bold",
-              marginTop: "0.5rem",
-            }}
-          >
-            {metrics.currentSprint?.committedStoryPoints || 0}
+      <div className="row g-3 mt-2 mx-0">
+        <div className="col-12 col-md-6 col-xl-3">
+          <div className="dashboard-metric-card p-3 h-100">
+            <div className="small fw-semibold mb-2" style={{ color: theme.warning }}>
+              Story Points Committed
+            </div>
+            <div className="display-6 fw-bold" style={{ color: theme.text }}>
+              {metrics.currentSprint?.committedStoryPoints || 0}
+            </div>
           </div>
         </div>
-        <div
-          style={{
-            background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-            padding: "1.5rem",
-            borderRadius: "12px",
-            color: "white",
-          }}
-        >
-          <div style={{ fontSize: "0.9rem", opacity: 0.9 }}>
-            Story Points Completed
-          </div>
-          <div
-            style={{
-              fontSize: "2rem",
-              fontWeight: "bold",
-              marginTop: "0.5rem",
-            }}
-          >
-            {metrics.currentSprint?.completedStoryPoints || 0}
+        <div className="col-12 col-md-6 col-xl-3">
+          <div className="dashboard-metric-card p-3 h-100">
+            <div className="small fw-semibold mb-2" style={{ color: theme.warning }}>
+              Story Points Completed
+            </div>
+            <div className="display-6 fw-bold" style={{ color: theme.text }}>
+              {metrics.currentSprint?.completedStoryPoints || 0}
+            </div>
           </div>
         </div>
-        <div
-          style={{
-            background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-            padding: "1.5rem",
-            borderRadius: "12px",
-            color: "white",
-          }}
-        >
-          <div style={{ fontSize: "0.9rem", opacity: 0.9 }}>
-            Completion Rate
-          </div>
-          <div
-            style={{
-              fontSize: "2rem",
-              fontWeight: "bold",
-              marginTop: "0.5rem",
-            }}
-          >
-            {metrics.currentSprint?.completionRate || 0}%
+        <div className="col-12 col-md-6 col-xl-3">
+          <div className="dashboard-metric-card p-3 h-100">
+            <div className="small fw-semibold mb-2" style={{ color: theme.warning }}>
+              Completion Rate
+            </div>
+            <div className="display-6 fw-bold" style={{ color: theme.text }}>
+              {metrics.currentSprint?.completionRate || 0}%
+            </div>
           </div>
         </div>
-        <div
-          style={{
-            background: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
-            padding: "1.5rem",
-            borderRadius: "12px",
-            color: "white",
-          }}
-        >
-          <div style={{ fontSize: "0.9rem", opacity: 0.9 }}>Total Commits</div>
-          <div
-            style={{
-              fontSize: "2rem",
-              fontWeight: "bold",
-              marginTop: "0.5rem",
-            }}
-          >
-            {metrics.commitMetrics?.totalCommits || 0}
+        <div className="col-12 col-md-6 col-xl-3">
+          <div className="dashboard-metric-card p-3 h-100">
+            <div className="small fw-semibold mb-2" style={{ color: theme.warning }}>
+              Total Commits
+            </div>
+            <div className="display-6 fw-bold" style={{ color: theme.text }}>
+              {metrics.commitMetrics?.totalCommits || 0}
+            </div>
           </div>
         </div>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
-          gap: "1.75rem",
-          marginTop: "2.5rem",
-          marginBottom: "2rem",
-        }}
-      >
+      <div className="row g-3 mt-2 mb-4 align-items-stretch mx-0">
         {/* AI Usage Metrics */}
         {aiUsageData.length > 0 && (
-          <div style={sectionCardStyle}>
-            <div
+          <div className="col-12 col-xl-4">
+            <div className="dashboard-card p-3 h-100">
+              <div
               style={{
                 display: "flex",
                 justifyContent: "space-between",
@@ -378,7 +293,7 @@ export default function MetricsCharts({
                   style={{
                     fontSize: "1.35rem",
                     fontWeight: "700",
-                    color: "#111827",
+                    color: theme.text,
                     margin: 0,
                   }}
                 >
@@ -387,7 +302,7 @@ export default function MetricsCharts({
                 <p
                   style={{
                     margin: "0.5rem 0 0 0",
-                    color: "#475569",
+                    color: theme.muted,
                     fontSize: "0.95rem",
                   }}
                 >
@@ -406,7 +321,7 @@ export default function MetricsCharts({
                     `${name}: ${(percent * 100).toFixed(0)}%`
                   }
                   outerRadius={100}
-                  fill="#8884d8"
+                  fill={theme.primary}
                   dataKey="value"
                 >
                   {aiUsageData.map((entry, index) => (
@@ -428,10 +343,10 @@ export default function MetricsCharts({
               style={{
                 marginTop: "1.5rem",
                 padding: "1.25rem",
-                background: "#f8fafc",
+                background: theme.background,
                 borderRadius: "12px",
                 fontSize: "0.95rem",
-                color: "#334155",
+                color: theme.muted,
               }}
             >
               <p style={{ margin: 0, fontWeight: 700 }}>Time Saved</p>
@@ -439,27 +354,29 @@ export default function MetricsCharts({
                 style={{
                   margin: "0.5rem 0 0 0",
                   fontSize: "1.25rem",
-                  color: "#0f172a",
+                  color: theme.text,
                 }}
               >
                 {metrics.aiMetrics?.timeSavedTotal || 0} SP
               </p>
-              <p style={{ margin: "0.5rem 0 0 0", color: "#475569" }}>
+              <p style={{ margin: "0.5rem 0 0 0", color: theme.muted }}>
                 Reduction of{" "}
                 {metrics.aiMetrics?.timeSavedPercent?.toFixed(1) || 0}% compared
                 to original estimates.
               </p>
             </div>
           </div>
+          </div>
         )}
 
         {aiUsageByAssigneeData.length > 0 && (
-          <div style={sectionCardStyle}>
-            <h3
+          <div className="col-12 col-xl-4">
+            <div className="dashboard-card p-3 h-100">
+              <h3
               style={{
                 fontSize: "1.35rem",
                 fontWeight: "700",
-                color: "#111827",
+                color: theme.text,
                 marginBottom: "1rem",
               }}
             >
@@ -468,7 +385,7 @@ export default function MetricsCharts({
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ background: "#4338ca", color: "white" }}>
+                  <tr style={{ background: theme.primary, color: "white" }}>
                     <th
                       style={{
                         padding: "0.85rem 1rem",
@@ -487,7 +404,7 @@ export default function MetricsCharts({
                         fontSize: "0.9rem",
                       }}
                     >
-                      Estimated Story Points With AI
+                      Estimated SP (Without AI)
                     </th>
                     <th
                       style={{
@@ -497,7 +414,7 @@ export default function MetricsCharts({
                         fontSize: "0.9rem",
                       }}
                     >
-                      Story Points
+                      Actual SP (AI)
                     </th>
                     <th
                       style={{
@@ -507,7 +424,7 @@ export default function MetricsCharts({
                         fontSize: "0.9rem",
                       }}
                     >
-                      Time Saved
+                      Time Saved (SP)
                     </th>
                     <th
                       style={{
@@ -526,14 +443,14 @@ export default function MetricsCharts({
                     <tr
                       key={assignee.assignee}
                       style={{
-                        background: index % 2 === 0 ? "#ffffff" : "#f8fafc",
+                        background: index % 2 === 0 ? theme.surface : theme.background,
                       }}
                     >
                       <td
                         style={{
                           padding: "0.85rem 1rem",
                           fontWeight: "600",
-                          color: "#0f172a",
+                          color: theme.text,
                         }}
                       >
                         {assignee.assignee}
@@ -542,17 +459,7 @@ export default function MetricsCharts({
                         style={{
                           padding: "0.85rem 1rem",
                           textAlign: "right",
-                          color: "#2563eb",
-                          fontWeight: "700",
-                        }}
-                      >
-                        {assignee.total_story_points.toFixed(1)} SP
-                      </td>
-                      <td
-                        style={{
-                          padding: "0.85rem 1rem",
-                          textAlign: "right",
-                          color: "#4c51bf",
+                          color: theme.primary,
                           fontWeight: "700",
                         }}
                       >
@@ -562,7 +469,17 @@ export default function MetricsCharts({
                         style={{
                           padding: "0.85rem 1rem",
                           textAlign: "right",
-                          color: "#2f855a",
+                          color: theme.chartActualAi,
+                          fontWeight: "700",
+                        }}
+                      >
+                        {assignee.total_story_points.toFixed(1)} SP
+                      </td>
+                      <td
+                        style={{
+                          padding: "0.85rem 1rem",
+                          textAlign: "right",
+                          color: theme.success,
                           fontWeight: "700",
                         }}
                       >
@@ -572,7 +489,7 @@ export default function MetricsCharts({
                         style={{
                           padding: "0.85rem 1rem",
                           textAlign: "right",
-                          color: "#475569",
+                          color: theme.muted,
                         }}
                       >
                         {assignee.time_saved_percent.toFixed(1)}%
@@ -582,12 +499,14 @@ export default function MetricsCharts({
                 </tbody>
               </table>
             </div>
-          </div>
+           </div>
+         </div>
         )}
 
         {/* Developer Commits */}
-        <div style={sectionCardStyle}>
-          <div
+        <div className="col-12 col-xl-4">
+          <div className="dashboard-card p-3 h-100">
+            <div
             style={{
               display: "flex",
               justifyContent: "space-between",
@@ -602,7 +521,7 @@ export default function MetricsCharts({
                 style={{
                   fontSize: "1.35rem",
                   fontWeight: "700",
-                  color: "#111827",
+                  color: theme.text,
                   margin: 0,
                 }}
               >
@@ -611,7 +530,7 @@ export default function MetricsCharts({
               <p
                 style={{
                   margin: "0.5rem 0 0 0",
-                  color: "#475569",
+                  color: theme.muted,
                   fontSize: "0.95rem",
                 }}
               >
@@ -636,7 +555,7 @@ export default function MetricsCharts({
                       return `${displayName}: ${(percent * 100).toFixed(1)}%`;
                     }}
                     outerRadius={90}
-                    fill="#8884d8"
+                    fill={theme.primary}
                     dataKey="value"
                   >
                     {developerCommitsData.map((entry, index) => (
@@ -660,7 +579,7 @@ export default function MetricsCharts({
                   marginTop: "1.5rem",
                   overflow: "hidden",
                   borderRadius: "14px",
-                  border: "1px solid rgba(148, 163, 184, 0.2)",
+                  border: `1px solid ${theme.primaryLight}`,
                 }}
               >
                 <table
@@ -670,7 +589,7 @@ export default function MetricsCharts({
                   }}
                 >
                   <thead>
-                    <tr style={{ background: "#4338ca", color: "white" }}>
+                    <tr style={{ background: theme.primary, color: "white" }}>
                       <th
                         style={{
                           padding: "0.85rem 1rem",
@@ -727,14 +646,14 @@ export default function MetricsCharts({
                         <tr
                           key={dev.name}
                           style={{
-                            background: index % 2 === 0 ? "#ffffff" : "#f8fafc",
+                            background: index % 2 === 0 ? theme.surface : theme.background,
                           }}
                         >
                           <td
                             style={{
                               padding: "0.85rem 1rem",
                               fontWeight: "600",
-                              color: "#0f172a",
+                              color: theme.text,
                             }}
                           >
                             {dev.name}
@@ -743,7 +662,7 @@ export default function MetricsCharts({
                             style={{
                               padding: "0.85rem 1rem",
                               textAlign: "right",
-                              color: "#16a34a",
+                              color: theme.success,
                               fontWeight: "700",
                             }}
                           >
@@ -753,7 +672,7 @@ export default function MetricsCharts({
                             style={{
                               padding: "0.85rem 1rem",
                               textAlign: "right",
-                              color: "#2563eb",
+                              color: theme.primary,
                               fontWeight: "700",
                             }}
                           >
@@ -763,7 +682,7 @@ export default function MetricsCharts({
                             style={{
                               padding: "0.85rem 1rem",
                               textAlign: "right",
-                              color: "#475569",
+                              color: theme.muted,
                             }}
                           >
                             {percent}%
@@ -806,11 +725,11 @@ export default function MetricsCharts({
             style={{
               marginTop: "1.5rem",
               padding: "1rem",
-              background: "#f8fafc",
+              background: theme.background,
               borderRadius: "14px",
-              border: "1px solid rgba(148, 163, 184, 0.18)",
+              border: `1px solid ${theme.primaryLight}`,
               fontSize: "0.95rem",
-              color: "#334155",
+              color: theme.muted,
             }}
           >
             <p style={{ margin: "0 0 0.5rem 0", fontWeight: 700 }}>
@@ -830,7 +749,7 @@ export default function MetricsCharts({
                   style={{
                     margin: "0.5rem 0 0 0",
                     fontSize: "0.9rem",
-                    color: "#475569",
+                    color: theme.muted,
                   }}
                 >
                   <strong>Total Commits Scanned:</strong>{" "}
@@ -841,7 +760,7 @@ export default function MetricsCharts({
                       style={{
                         display: "block",
                         marginTop: "0.25rem",
-                        color: "#dc2626",
+                        color: theme.danger,
                         fontSize: "0.85rem",
                       }}
                     >
@@ -851,13 +770,14 @@ export default function MetricsCharts({
                 </p>
               )}
           </div>
-        </div>
-      </div>
+         </div>
+       </div>
 
       {/* Developer Story Points */}
       {developerStoryPointsData.length > 0 && (
-        <div style={{ ...sectionCardStyle, gridColumn: "span 2" }}>
-          <div
+        <div className="col-12">
+          <div className="dashboard-card p-3 h-100">
+            <div
             style={{
               display: "flex",
               justifyContent: "space-between",
@@ -872,7 +792,7 @@ export default function MetricsCharts({
                 style={{
                   fontSize: "1.35rem",
                   fontWeight: "700",
-                  color: "#111827",
+                  color: theme.text,
                   margin: 0,
                 }}
               >
@@ -881,7 +801,7 @@ export default function MetricsCharts({
               <p
                 style={{
                   margin: "0.5rem 0 0 0",
-                  color: "#475569",
+                  color: theme.muted,
                   fontSize: "0.95rem",
                 }}
               >
@@ -903,7 +823,7 @@ export default function MetricsCharts({
                       `${name}: ${(percent * 100).toFixed(1)}%`
                     }
                     outerRadius={90}
-                    fill="#8884d8"
+                    fill={theme.primary}
                     dataKey="value"
                   >
                     {developerStoryPointsData.map((entry, index) => (
@@ -928,12 +848,12 @@ export default function MetricsCharts({
                   marginTop: "1.5rem",
                   overflow: "hidden",
                   borderRadius: "14px",
-                  border: "1px solid rgba(148, 163, 184, 0.18)",
+                  border: `1px solid ${theme.primaryLight}`,
                 }}
               >
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
-                    <tr style={{ background: "#4338ca", color: "white" }}>
+                    <tr style={{ background: theme.primary, color: "white" }}>
                       <th
                         style={{
                           padding: "0.85rem 1rem",
@@ -980,14 +900,14 @@ export default function MetricsCharts({
                         <tr
                           key={dev.name}
                           style={{
-                            background: index % 2 === 0 ? "#ffffff" : "#f8fafc",
+                            background: index % 2 === 0 ? theme.surface : theme.background,
                           }}
                         >
                           <td
                             style={{
                               padding: "0.85rem 1rem",
                               fontWeight: "600",
-                              color: "#0f172a",
+                              color: theme.text,
                             }}
                           >
                             {dev.name}
@@ -996,7 +916,7 @@ export default function MetricsCharts({
                             style={{
                               padding: "0.85rem 1rem",
                               textAlign: "right",
-                              color: "#2563eb",
+                              color: theme.primary,
                               fontWeight: "700",
                             }}
                           >
@@ -1006,7 +926,7 @@ export default function MetricsCharts({
                             style={{
                               padding: "0.85rem 1rem",
                               textAlign: "right",
-                              color: "#475569",
+                              color: theme.muted,
                             }}
                           >
                             {percent}%
@@ -1020,7 +940,7 @@ export default function MetricsCharts({
 
               {developerStoryPointsByIssueData.length > 0 && (
                 <div style={{ marginTop: "1.5rem" }}>
-                  <h4 style={{ margin: "1rem 0 0.75rem 0", color: "#111827" }}>
+                  <h4 style={{ margin: "1rem 0 0.75rem 0", color: theme.text }}>
                     Developer Issue Breakdown
                   </h4>
                   <div style={{ overflowX: "auto" }}>
@@ -1032,7 +952,7 @@ export default function MetricsCharts({
                       }}
                     >
                       <thead>
-                        <tr style={{ background: "#2563eb", color: "white" }}>
+                        <tr style={{ background: theme.primary, color: "white" }}>
                           <th
                             style={{
                               padding: "0.85rem 1rem",
@@ -1080,7 +1000,7 @@ export default function MetricsCharts({
                           (developer, devIndex) => [
                             <tr
                               key={`${developer.assignee}-header`}
-                              style={{ background: "#eff6ff" }}
+                              style={{ background: theme.primaryLight }}
                             >
                               <td
                                 style={{
@@ -1100,14 +1020,14 @@ export default function MetricsCharts({
                                 key={`${developer.assignee}-${story.storyId}`}
                                 style={{
                                   background:
-                                    index % 2 === 0 ? "#ffffff" : "#f8fafc",
+                                    index % 2 === 0 ? theme.surface : theme.background,
                                 }}
                               >
                                 <td
                                   style={{
                                     padding: "0.85rem 1rem",
                                     fontWeight: "600",
-                                    color: "#0f172a",
+                                    color: theme.text,
                                   }}
                                 >
                                   {story.storyId}
@@ -1116,7 +1036,7 @@ export default function MetricsCharts({
                                   style={{
                                     padding: "0.85rem 1rem",
                                     fontWeight: "500",
-                                    color: "#475569",
+                                    color: theme.muted,
                                     maxWidth: "420px",
                                     whiteSpace: "normal",
                                     wordBreak: "break-word",
@@ -1128,7 +1048,7 @@ export default function MetricsCharts({
                                   style={{
                                     padding: "0.85rem 1rem",
                                     textAlign: "right",
-                                    color: "#2563eb",
+                                    color: theme.primary,
                                     fontWeight: "700",
                                   }}
                                 >
@@ -1138,7 +1058,7 @@ export default function MetricsCharts({
                                   style={{
                                     padding: "0.85rem 1rem",
                                     textAlign: "right",
-                                    color: "#475569",
+                                    color: theme.muted,
                                   }}
                                 >
                                   {story.percentage.toFixed(1)}%
@@ -1170,6 +1090,7 @@ export default function MetricsCharts({
               </p>
             </div>
           )}
+         </div>
         </div>
       )}
 
@@ -1177,10 +1098,10 @@ export default function MetricsCharts({
       {storyCommitsData.length > 0 && (
         <div
           style={{
-            background: "#f7fafc",
+            background: theme.background,
             padding: "1.5rem",
             borderRadius: "12px",
-            border: "1px solid #e2e8f0",
+            border: `1px solid ${theme.primaryLight}`,
             marginTop: "2rem",
           }}
         >
@@ -1208,71 +1129,13 @@ export default function MetricsCharts({
               />
               <YAxis />
               <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="value" fill="#667eea" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="value" fill={theme.primary} radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
 
-          <div style={{ marginTop: "1.25rem" }}>
-            <h4
-              style={{
-                margin: "0 0 0.75rem 0",
-                color: "#111827",
-                fontSize: "1rem",
-                fontWeight: "700",
-              }}
-            >
-              Linked commit details
-            </h4>
-            <div style={{ display: "grid", gap: "0.75rem" }}>
-              {storyCommitDetailsData.map((story) => (
-                <div
-                  key={story.name}
-                  style={{
-                    border: "1px solid rgba(148, 163, 184, 0.2)",
-                    borderRadius: "10px",
-                    padding: "0.9rem 1rem",
-                    background: "white",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: "0.75rem",
-                      marginBottom: "0.5rem",
-                    }}
-                  >
-                    <strong style={{ color: "#0f172a" }}>{story.name}</strong>
-                    <span style={{ color: "#2563eb", fontWeight: 700 }}>
-                      {story.value} commit{story.value === 1 ? "" : "s"}
-                    </span>
-                  </div>
-                  {story.details.length > 0 ? (
-                    <ul style={{ margin: 0, paddingLeft: "1rem", color: "#475569" }}>
-                      {story.details.map((detail) => (
-                        <li key={`${story.name}-${detail.sha}`} style={{ marginBottom: "0.35rem" }}>
-                          <span style={{ color: "#0f172a", fontWeight: 600 }}>
-                            {detail.sha}
-                          </span>{" "}
-                          {detail.message}
-                          <span style={{ color: "#64748b", display: "block", fontSize: "0.85rem" }}>
-                            {detail.author} • {detail.date}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <span style={{ color: "#64748b" }}>
-                      No linked commit details found for this story.
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       )}
+    </div>
 
     </div>
   );

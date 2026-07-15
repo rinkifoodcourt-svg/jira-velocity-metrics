@@ -1,24 +1,22 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { login, checkAuthStatus } from '@/lib/api'
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Check if already authenticated
     checkAuthStatus().then((status) => {
       if (status.authenticated) {
         router.push('/')
       }
     })
 
-    // Check for error in URL params
     const urlError = searchParams.get('error')
     if (urlError) {
       setError(decodeURIComponent(urlError))
@@ -31,7 +29,6 @@ export default function LoginPage() {
 
     try {
       const authUrl = await login()
-      // Redirect to Atlassian OAuth page
       window.location.href = authUrl
     } catch (err: any) {
       setError(err.message || 'Failed to initiate login')
@@ -45,14 +42,14 @@ export default function LoginPage() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
       padding: '2rem'
     }}>
       <div style={{
         background: 'white',
         borderRadius: '16px',
         padding: '3rem',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+        boxShadow: '0 20px 60px rgba(37, 99, 235, 0.18)',
         maxWidth: '400px',
         width: '100%'
       }}>
@@ -60,12 +57,12 @@ export default function LoginPage() {
           fontSize: '2rem',
           fontWeight: 'bold',
           marginBottom: '0.5rem',
-          color: '#333'
+          color: '#111827'
         }}>
           Jira Velocity Dashboard
         </h1>
         <p style={{
-          color: '#666',
+          color: '#4B5563',
           marginBottom: '2rem'
         }}>
           Sign in with your Atlassian account to access velocity metrics
@@ -73,12 +70,12 @@ export default function LoginPage() {
 
         {error && (
           <div style={{
-            background: '#fee',
-            border: '1px solid #fcc',
+            background: '#FEF2F2',
+            border: '1px solid #FECACA',
             borderRadius: '8px',
             padding: '1rem',
             marginBottom: '1.5rem',
-            color: '#c33'
+            color: '#B91C1C'
           }}>
             {error}
           </div>
@@ -90,7 +87,7 @@ export default function LoginPage() {
           style={{
             width: '100%',
             padding: '1rem',
-            background: loading ? '#ccc' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: loading ? '#DBEAFE' : 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
             color: 'white',
             border: 'none',
             borderRadius: '8px',
@@ -106,12 +103,20 @@ export default function LoginPage() {
         <p style={{
           marginTop: '2rem',
           fontSize: '0.9rem',
-          color: '#999',
+          color: '#6B7280',
           textAlign: 'center'
         }}>
-          You'll be redirected to Atlassian to sign in securely
+          You&apos;ll be redirected to Atlassian to sign in securely
         </p>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F8FAFC' }}>Loading...</div>}>
+      <LoginPageContent />
+    </Suspense>
   )
 }

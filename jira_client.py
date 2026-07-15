@@ -1,6 +1,6 @@
 """Jira API client for fetching sprint data"""
 from jira import JIRA
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from datetime import datetime, date
 import config
 import requests
@@ -21,6 +21,7 @@ class JiraClient:
         self.server = config.Config.JIRA_SERVER
         self.auth = (config.Config.JIRA_EMAIL, config.Config.JIRA_API_TOKEN)
         self._ai_story_points_field_id = None
+        self._field_name_cache: Dict[str, str] = {}
     
     def _resolve_custom_field_id(self, field_ref: str) -> Optional[str]:
         """Resolve a Jira custom field reference to a customfield_XXXXX ID."""
@@ -34,13 +35,95 @@ class JiraClient:
         if normalized.isdigit():
             return f'customfield_{normalized}'
 
+        return self._get_field_id_by_name(normalized)
+
+    def _get_field_name_cache(self) -> Dict[str, str]:
+        """Cache Jira field metadata by field ID."""
+        if not self._field_name_cache:
+            try:
+                for field in self.jira.fields():
+                    field_id = field.get('id')
+                    field_name = field.get('name')
+                    if field_id and field_name:
+                        self._field_name_cache[field_id] = field_name
+            except Exception:
+                pass
+        return self._field_name_cache
+
+    def _get_field_id_by_name(self, field_name: str) -> Optional[str]:
+        """Look up a Jira field ID by its display name."""
+        if not field_name:
+            return None
+
+        target_name = field_name.strip().lower()
+        for field_id, name in self._get_field_name_cache().items():
+            if name and name.strip().lower() == target_name:
+                return field_id
+        return None
+
+    def _parse_numeric_value(self, value) -> Optional[float]:
+        """Convert Jira field values to floats when possible."""
+        if value is None:
+            return None
+
+        if isinstance(value, list):
+            if not value:
+                return None
+            value = value[0]
+
+        if isinstance(value, dict):
+            if 'value' in value:
+                value = value['value']
+            elif 'name' in value:
+                value = value['name']
+
         try:
-            all_fields = self.jira.fields()
-            for field in all_fields:
-                if field.get('name', '').strip().lower() == normalized.lower():
-                    return field.get('id')
-        except Exception:
-            pass
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    def _get_field_value(self, fields: Dict, field_id: Optional[str]) -> Optional[float]:
+        """Extract a numeric value from a field dictionary."""
+        if not field_id or field_id not in fields:
+            return None
+        return self._parse_numeric_value(fields[field_id])
+
+    def _get_story_points_field_and_value(self, fields: Dict) -> Tuple[Optional[str], Optional[float]]:
+        """Resolve the actual story points field ID and value from the issue payload."""
+        for field_id in ['customfield_10129', 'customfield_10016', 'customfield_10020', 'customfield_10021']:
+            value = self._get_field_value(fields, field_id)
+            if value is not None:
+                return field_id, value
+
+        fallback_field_id = self._get_field_id_by_name('Story Points')
+        if fallback_field_id:
+            value = self._get_field_value(fields, fallback_field_id)
+            if value is not None:
+                return fallback_field_id, value
+
+        return None, None
+
+    def _get_story_points_value(self, fields: Dict, excluded_field_id: Optional[str] = None) -> Optional[float]:
+        """Resolve actual story points from the issue payload."""
+        field_id, value = self._get_story_points_field_and_value(fields)
+        if field_id and field_id != excluded_field_id:
+            return value
+        return None
+
+    def _get_ai_story_points_value(self, fields: Dict, excluded_field_id: Optional[str] = None) -> Optional[float]:
+        """Resolve AI story points from the issue payload, preferring the configured field when available."""
+        ai_field_id = self._get_ai_story_points_field_id()
+        if ai_field_id and ai_field_id != excluded_field_id:
+            value = self._get_field_value(fields, ai_field_id)
+            if value is not None:
+                return value
+
+        for candidate_name in ['AI Story Points', 'Story Points']:
+            candidate_field_id = self._get_field_id_by_name(candidate_name)
+            if candidate_field_id and candidate_field_id != excluded_field_id and candidate_field_id != ai_field_id:
+                value = self._get_field_value(fields, candidate_field_id)
+                if value is not None:
+                    return value
 
         return None
 
@@ -50,8 +133,18 @@ class JiraClient:
             return self._ai_story_points_field_id
 
         field_ref = config.Config.AI_STORY_POINTS_FIELD_ID or ''
-        self._ai_story_points_field_id = self._resolve_custom_field_id(field_ref)
-        return self._ai_story_points_field_id
+        resolved = self._resolve_custom_field_id(field_ref)
+        if resolved:
+            self._ai_story_points_field_id = resolved
+            return resolved
+
+        for candidate_name in ['AI Story Points', 'Story Points']:
+            resolved = self._get_field_id_by_name(candidate_name)
+            if resolved:
+                self._ai_story_points_field_id = resolved
+                return resolved
+
+        return None
 
     def get_sprint(self, board_id: str, sprint_name: Optional[str] = None) -> Optional[Dict]:
         """Get active or specified sprint for a board"""
@@ -75,11 +168,12 @@ class JiraClient:
         """Get all issues for a sprint using API v3"""
         try:
             # Try Agile API first (more efficient for sprint issues)
-            # Build fields list dynamically to include AI Story Points and assignee if configured
-            fields_list = 'summary,status,issuetype,created,resolutiondate,labels,assignee,customfield_10129'
+            # Build fields list dynamically to include story point fields and the configured AI field if present
+            field_ids = ['summary', 'status', 'issuetype', 'created', 'resolutiondate', 'labels', 'assignee', 'customfield_10129', 'customfield_10016', 'customfield_10020', 'customfield_10021']
             ai_field_id = self._get_ai_story_points_field_id()
             if ai_field_id:
-                fields_list += f',{ai_field_id}'
+                field_ids.append(ai_field_id)
+            fields_list = ','.join(field_ids)
             
             url = f"{self.server}/rest/agile/1.0/board/{board_id}/sprint/{sprint_id}/issue"
             params = {
@@ -126,18 +220,9 @@ class JiraClient:
                     ai_story_points = None
                     ai_points_saved = None
                     
-                    # Try to get story points from fields first
-                    for field_id in ['customfield_10129', 'customfield_10016', 'customfield_10020', 'customfield_10021']:
-                        if field_id in fields and fields[field_id] is not None:
-                            try:
-                                value = fields[field_id]
-                                if isinstance(value, list) and len(value) > 0:
-                                    value = value[0]
-                                story_points = float(value)
-                                break
-                            except (ValueError, TypeError):
-                                continue
-                    
+                    # Try to get story points from fields first and remember the field ID
+                    story_points_field_id, story_points = self._get_story_points_field_and_value(fields)
+                      
                     # If not found, fetch full issue
                     if story_points is None:
                         try:
@@ -148,18 +233,9 @@ class JiraClient:
                             pass
                     
                     # Calculate AI story points from configured custom field first
-                    ai_field_id = self._get_ai_story_points_field_id()
-                    if ai_field_id and ai_field_id in fields:
-                        try:
-                            value = fields[ai_field_id]
-                            if value is not None:
-                                if isinstance(value, list) and len(value) > 0:
-                                    value = value[0]
-                                ai_story_points = float(value)
-                                if story_points is not None:
-                                    ai_points_saved = ai_story_points - story_points
-                        except (ValueError, TypeError):
-                            pass
+                    ai_story_points = self._get_ai_story_points_value(fields, excluded_field_id=story_points_field_id)
+                    if ai_story_points is not None and story_points is not None:
+                        ai_points_saved = ai_story_points - story_points
                     
                     # If no custom field value, try label-based extraction
                     if ai_story_points is None:
@@ -220,8 +296,8 @@ class JiraClient:
             next_page_token = None
             
             while True:
-                # Build fields list dynamically to include AI Story Points and assignee if configured
-                fields_list = ['summary', 'status', 'issuetype', 'created', 'resolutiondate', 'labels', 'assignee', 'customfield_10129']
+                # Build fields list dynamically to include story-point fields and the configured AI field if present
+                fields_list = ['summary', 'status', 'issuetype', 'created', 'resolutiondate', 'labels', 'assignee', 'customfield_10129', 'customfield_10016', 'customfield_10020', 'customfield_10021']
                 ai_field_id = self._get_ai_story_points_field_id()
                 if ai_field_id:
                     fields_list.append(ai_field_id)
@@ -261,33 +337,14 @@ class JiraClient:
                 issue_type = fields.get('issuetype', {})
                 
                 # Get story points from custom fields
-                story_points = None
-                for field_id in ['customfield_10129', 'customfield_10016', 'customfield_10020', 'customfield_10021']:
-                    if field_id in fields and fields[field_id] is not None:
-                        try:
-                            value = fields[field_id]
-                            if isinstance(value, list) and len(value) > 0:
-                                value = value[0]
-                            story_points = float(value)
-                            break
-                        except (ValueError, TypeError):
-                            continue
+                story_points_field_id, story_points = self._get_story_points_field_and_value(fields)
                 
                 # Get AI story points from configured custom field first
                 ai_story_points = None
                 ai_points_saved = None
-                ai_field_id = self._get_ai_story_points_field_id()
-                if ai_field_id and ai_field_id in fields:
-                    try:
-                        value = fields[ai_field_id]
-                        if value is not None:
-                            if isinstance(value, list) and len(value) > 0:
-                                value = value[0]
-                            ai_story_points = float(value)
-                            if story_points is not None:
-                                ai_points_saved = ai_story_points - story_points
-                    except (ValueError, TypeError):
-                        pass
+                ai_story_points = self._get_ai_story_points_value(fields, excluded_field_id=story_points_field_id)
+                if ai_story_points is not None and story_points is not None:
+                    ai_points_saved = ai_story_points - story_points
                 
                 # If no custom field value, try label-based extraction
                 if ai_story_points is None:
@@ -388,37 +445,65 @@ class JiraClient:
     def _get_story_points(self, issue) -> Optional[float]:
         """Extract story points from issue"""
         try:
-            # Check for customfield_10129 first (this Jira instance's story points field)
-            if hasattr(issue.fields, 'customfield_10129'):
-                return float(issue.fields.customfield_10129) if issue.fields.customfield_10129 else None
-            
-            # Common field names for story points
-            if hasattr(issue.fields, 'customfield_10016'):  # Common Jira story points field
-                return float(issue.fields.customfield_10016) if issue.fields.customfield_10016 else None
-            
-            # Try other common field names
-            for field_name in ['story_points', 'customfield_10020', 'customfield_10021']:
-                if hasattr(issue.fields, field_name):
-                    value = getattr(issue.fields, field_name)
-                    if value:
-                        return float(value)
-            
+            issue_fields = getattr(issue, 'fields', None)
+            if issue_fields is None:
+                return None
+
+            field_ids = ['customfield_10129', 'customfield_10016', 'customfield_10020', 'customfield_10021']
+            for field_id in field_ids:
+                if hasattr(issue_fields, field_id):
+                    value = getattr(issue_fields, field_id)
+                    parsed = self._parse_numeric_value(value)
+                    if parsed is not None:
+                        return parsed
+
+            fallback_field_id = self._get_field_id_by_name('Story Points')
+            if fallback_field_id and hasattr(issue_fields, fallback_field_id):
+                value = getattr(issue_fields, fallback_field_id)
+                parsed = self._parse_numeric_value(value)
+                if parsed is not None:
+                    return parsed
+
             return None
         except:
             return None
     
     def _get_ai_story_points(self, issue) -> Optional[float]:
         """Extract AI story points from issue using custom field or labels"""
-        # First try custom field if configured
-        ai_field_id = self._get_ai_story_points_field_id()
-        if ai_field_id:
-            try:
-                if hasattr(issue.fields, ai_field_id):
-                    value = getattr(issue.fields, ai_field_id)
-                    if value is not None:
-                        return float(value)
-            except:
-                pass
+        try:
+            issue_fields = getattr(issue, 'fields', None)
+            if issue_fields is None:
+                return None
+
+            actual_story_points = self._get_story_points(issue)
+            actual_field_id = None
+            if actual_story_points is not None:
+                actual_field_id = None
+                for field_id in ['customfield_10129', 'customfield_10016', 'customfield_10020', 'customfield_10021']:
+                    if hasattr(issue_fields, field_id):
+                        value = getattr(issue_fields, field_id)
+                        if self._parse_numeric_value(value) is not None:
+                            actual_field_id = field_id
+                            break
+                if actual_field_id is None:
+                    actual_field_id = self._get_field_id_by_name('Story Points')
+
+            ai_field_id = self._get_ai_story_points_field_id()
+            if ai_field_id and hasattr(issue_fields, ai_field_id) and ai_field_id != actual_field_id:
+                value = getattr(issue_fields, ai_field_id)
+                parsed = self._parse_numeric_value(value)
+                if parsed is not None:
+                    return parsed
+
+            for candidate_name in ['AI Story Points', 'Story Points']:
+                candidate_field_id = self._get_field_id_by_name(candidate_name)
+                if candidate_field_id and candidate_field_id != actual_field_id and candidate_field_id != ai_field_id and hasattr(issue_fields, candidate_field_id):
+                    value = getattr(issue_fields, candidate_field_id)
+                    parsed = self._parse_numeric_value(value)
+                    if parsed is not None:
+                        return parsed
+        except:
+            pass
         
         # Fallback to labels (AI1, AI2, AI3, etc.)
         try:

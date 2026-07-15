@@ -241,95 +241,31 @@ export default function Dashboard() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#edf2f7",
-        padding: "2rem 1.5rem",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "1400px",
-          margin: "0 auto",
-          display: "flex",
-          flexDirection: "column",
-          gap: "1.5rem",
-        }}
-      >
-        <div id="dashboard-content">
-          <header
-            style={{
-              background: "white",
-              borderRadius: "24px",
-              padding: "2rem",
-              boxShadow: "0 24px 60px rgba(15, 23, 42, 0.08)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: "1.5rem",
-                flexWrap: "wrap",
-              }}
-            >
-              <div style={{ minWidth: "280px" }}>
-                <h1
-                  style={{
-                    margin: 0,
-                    fontSize: "2.5rem",
-                    fontWeight: 800,
-                    color: "#111827",
-                    lineHeight: 1.05,
-                  }}
-                >
-                  Jira Velocity Dashboard
-                </h1>
-                <p
-                  style={{
-                    margin: "1rem 0 0 0",
-                    color: "#475569",
-                    fontSize: "1rem",
-                    maxWidth: "720px",
-                    lineHeight: 1.7,
-                  }}
-                >
+    <div className="dashboard-shell px-0 py-3 py-lg-4">
+      <div className="container-fluid px-0">
+        <div id="dashboard-content" className="d-flex flex-column gap-3 px-2 px-lg-3">
+          <header className="dashboard-hero card border-0 p-3 p-lg-4">
+            <div className="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
+              <div className="flex-grow-1">
+                <span className="dashboard-pill px-3 py-2 mb-3">Velocity insights</span>
+                <h1 className="display-6 fw-bold mb-3">Jira Velocity Dashboard</h1>
+                <p className="lead dashboard-subtle mb-0">
                   Track AI story point savings, developer contributions, and
-                  sprint efficiency in a clean dashboard built for executive
-                  reviews.
+                  sprint efficiency in a calm, executive-ready workspace.
                 </p>
               </div>
 
               {user && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "1rem",
-                    minWidth: "220px",
-                  }}
-                >
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontWeight: 700, color: "#1f2937" }}>
+                <div className="dashboard-user-pill d-flex align-items-center gap-3">
+                  <div className="text-end">
+                    <div className="fw-semibold text-dark">
                       {user.name || user.email}
                     </div>
-                    <div style={{ fontSize: "0.95rem", color: "#6b7280" }}>
-                      {user.email}
-                    </div>
+                    <div className="small dashboard-subtle">{user.email}</div>
                   </div>
                   <button
                     onClick={handleLogout}
-                    style={{
-                      padding: "0.75rem 1rem",
-                      borderRadius: "999px",
-                      border: "1px solid #d1d5db",
-                      background: "#f8fafc",
-                      color: "#111827",
-                      cursor: "pointer",
-                      fontWeight: 600,
-                    }}
+                    className="btn btn-dashboard-secondary rounded-pill px-3 py-2"
                   >
                     Logout
                   </button>
@@ -337,17 +273,8 @@ export default function Dashboard() {
               )}
             </div>
 
-            <div
-              style={{
-                marginTop: "2rem",
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "1rem",
-                alignItems: "flex-end",
-                justifyContent: "space-between",
-              }}
-            >
-              <div style={{ flex: 1, minWidth: "300px" }}>
+            <div className="mt-4 d-flex flex-column flex-lg-row align-items-end justify-content-between gap-3">
+              <div className="w-100">
                 <BoardSelector
                   boards={boards}
                   selectedBoard={selectedBoard}
@@ -361,84 +288,24 @@ export default function Dashboard() {
                 <button
                   onClick={handleDownloadPDF}
                   disabled={downloadingPDF || loading}
-                  style={{
-                    padding: "0.95rem 1.5rem",
-                    fontSize: "1rem",
-                    fontWeight: 700,
-                    color: "white",
-                    background: downloadingPDF ? "#94a3b8" : "#2563eb",
-                    border: "none",
-                    borderRadius: "14px",
-                    cursor:
-                      downloadingPDF || loading ? "not-allowed" : "pointer",
-                    boxShadow: "0 16px 30px rgba(37, 99, 235, 0.25)",
-                    transition: "transform 0.2s ease, background 0.2s ease",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.75rem",
-                    whiteSpace: "nowrap",
-                    minHeight: "48px",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!downloadingPDF && !loading) {
-                      e.currentTarget.style.background = "#1d4ed8";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!downloadingPDF && !loading) {
-                      e.currentTarget.style.background = "#2563eb";
-                    }
-                  }}
+                  className={`btn btn-dashboard-primary rounded-pill px-4 py-2 ${downloadingPDF || loading ? "disabled" : ""}`}
                 >
-                  {downloadingPDF ? (
-                    <>
-                      <span>⏳</span>
-                      <span>Download PDF</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>📥</span>
-                      <span>Download PDF</span>
-                    </>
-                  )}
+                  <span className="me-2">{downloadingPDF ? "⏳" : "📥"}</span>
+                  <span>Download PDF</span>
                 </button>
               )}
             </div>
 
-            {(error ||
-              refreshing ||
-              (loading && cachedMetrics) ||
-              newDataReady) && (
-              <div
-                style={{ marginTop: "1.5rem", display: "grid", gap: "0.75rem" }}
-              >
+            {(error || refreshing || (loading && cachedMetrics) || newDataReady) && (
+              <div className="mt-4 d-grid gap-3">
                 {error && (
-                  <div
-                    style={{
-                      padding: "1rem 1.25rem",
-                      background: "#ffe4e6",
-                      color: "#9b2c2c",
-                      borderRadius: "14px",
-                      border: "1px solid #fecdd3",
-                    }}
-                  >
+                  <div className="alert dashboard-alert-soft mb-0" role="alert">
                     {error}
                   </div>
                 )}
 
                 {refreshing && !loading && (
-                  <div
-                    style={{
-                      padding: "1rem 1.25rem",
-                      background: "#e0f2fe",
-                      color: "#0369a1",
-                      borderRadius: "14px",
-                      border: "1px solid #bae6fd",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.75rem",
-                    }}
-                  >
+                  <div className="alert dashboard-alert-info mb-0 d-flex align-items-center gap-2" role="status">
                     <span>🔄</span>
                     <span>
                       Fetching latest data in background. Current report shown
@@ -448,18 +315,7 @@ export default function Dashboard() {
                 )}
 
                 {loading && cachedMetrics && (
-                  <div
-                    style={{
-                      padding: "1rem 1.25rem",
-                      background: "#fff7dd",
-                      color: "#6b4f10",
-                      borderRadius: "14px",
-                      border: "1px solid #fde68a",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.75rem",
-                    }}
-                  >
+                  <div className="alert dashboard-alert-warm mb-0 d-flex align-items-center gap-2" role="status">
                     <span>⏳</span>
                     <span>
                       Generating new metrics... Showing previous data while the
@@ -469,32 +325,12 @@ export default function Dashboard() {
                 )}
 
                 {newDataReady && (
-                  <div
-                    style={{
-                      padding: "1rem 1.25rem",
-                      background: "#d1fae5",
-                      color: "#14532d",
-                      borderRadius: "14px",
-                      border: "1px solid #a7f3d0",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: "0.75rem",
-                    }}
-                  >
-                    <span>
-                      ✅ New report is ready! Data has been refreshed.
-                    </span>
+                  <div className="alert dashboard-alert-success mb-0 d-flex align-items-center justify-content-between gap-3" role="status">
+                    <span>✅ New report is ready! Data has been refreshed.</span>
                     <button
                       onClick={() => setNewDataReady(false)}
-                      style={{
-                        background: "transparent",
-                        border: "none",
-                        color: "#14532d",
-                        cursor: "pointer",
-                        fontSize: "1.2rem",
-                        lineHeight: 1,
-                      }}
+                      className="btn btn-link p-0 text-decoration-none"
+                      style={{ color: "inherit" }}
                     >
                       ×
                     </button>
@@ -505,31 +341,16 @@ export default function Dashboard() {
           </header>
 
           {metrics || cachedMetrics ? (
-            <main
-              style={{
-                marginTop: "1.5rem",
-                display: "flex",
-                flexDirection: "column",
-                gap: "1.5rem",
-              }}
-            >
+            <main className="d-flex flex-column gap-4">
               <MetricsCharts
                 metrics={metrics || cachedMetrics!}
                 isLoading={loading && !metrics}
               />
             </main>
           ) : (
-            <div
-              style={{
-                marginTop: "1.5rem",
-                padding: "2rem",
-                borderRadius: "24px",
-                background: "white",
-                boxShadow: "0 20px 45px rgba(15, 23, 42, 0.06)",
-                textAlign: "center",
-              }}
-            >
-              <p style={{ margin: 0, color: "#475569", fontSize: "1rem" }}>
+            <div className="dashboard-card p-4 text-center">
+              <h2 className="h4 fw-semibold mb-3">Ready for your next sprint review</h2>
+              <p className="dashboard-subtle mb-0">
                 Select a board and click Generate Report to view the AI story
                 point dashboard.
               </p>
