@@ -53,6 +53,12 @@ export interface CommitDetail {
   date: string
 }
 
+export interface DeveloperProfile {
+  displayName: string
+  username: string
+  email: string
+}
+
 export interface CommitMetrics {
   totalCommits: number
   storiesWithCommits: number
@@ -63,6 +69,7 @@ export interface CommitMetrics {
   developerStoryPoints?: Record<string, number>
   developerStoryPointsByIssue?: DeveloperStoryPointsByIssue[]
   totalCommitsScanned?: number
+  developerProfiles?: Record<string, DeveloperProfile>
 }
 
 export interface CurrentSprint {

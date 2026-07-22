@@ -40,6 +40,11 @@ def add_cors_headers(response):
     return response
 
 
+@app.route("/", methods=["GET"])
+def index():
+    return "<h1>Jira Velocity Metrics Backend API</h1><p>The dashboard is running at <a href='http://localhost:4000'>http://localhost:4000</a></p>"
+
+
 @app.route("/api/health", methods=["GET"])
 @app.route("/health", methods=["GET"])
 def health():
@@ -200,6 +205,7 @@ def api_metrics(board_id):
                 story_commit_details_payload = {}
                 developer_story_points = {}
                 developer_ticket_sets = {}
+                developer_profiles = {}
 
                 for issue in issues:
                     assignee = issue.get('assignee', 'Unassigned')
@@ -219,6 +225,10 @@ def api_metrics(board_id):
                         if story_points:
                             developer_story_points[assignee] = developer_story_points.get(assignee, 0) + story_points
                         developer_commits[assignee] = developer_commits.get(assignee, 0) + len(linked_commits)
+                        
+                        assignee_details = issue.get('assignee_details')
+                        if assignee_details and assignee not in developer_profiles:
+                            developer_profiles[assignee] = assignee_details
 
                 total_commits = sum(developer_commits.values()) if developer_commits else 0
 
@@ -268,7 +278,8 @@ def api_metrics(board_id):
                         'storyCommits': story_commits,
                         'storyCommitDetails': story_commit_details_payload,
                         'developerStoryPoints': developer_story_points,
-                        'developerStoryPointsByIssue': developer_story_points_by_issue
+                        'developerStoryPointsByIssue': developer_story_points_by_issue,
+                        'developerProfiles': developer_profiles
                     }
             except Exception as commits_err:
                 print(f"Warning: Failed to calculate commit metrics: {commits_err}")
@@ -285,4 +296,4 @@ def api_metrics(board_id):
 
 if __name__ == "__main__":
     # Default host/port — adjust as needed. Use a production WSGI server for production.
-    app.run(host="localhost", port=5000, debug=True)
+    app.run(host="localhost", port=5001, debug=True)
