@@ -296,4 +296,4 @@ def api_metrics(board_id):
 
 if __name__ == "__main__":
     # Default host/port — adjust as needed. Use a production WSGI server for production.
-    app.run(host="localhost", port=5001, debug=True)
+    app.run(host="localhost", port=5000, debug=True)

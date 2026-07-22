@@ -108,9 +108,11 @@ export default function MetricsCharts({
     ...item,
     percent:
       totalAiUsage > 0
-        ? ((item.value / totalAiUsage) * 100).toFixed(1)
+        ? ((item.value / totalAiUsage) * 100).toFixed(2)
         : "0.0",
   }));
+
+  // const aiUsageData = aiUsageRaw;
 
   // Prepare developer commits data
   const developerCommitsRaw = metrics.commitMetrics?.developerCommits || {};
@@ -395,7 +397,7 @@ export default function MetricsCharts({
                   cy="50%"
                   labelLine={false}
                   label={({ name, percent }) =>
-                    `${name}: ${(percent * 100).toFixed(0)}%`
+                    `${name}: ${(percent * 1).toFixed(2)}%`
                   }
                   outerRadius={100}
                   fill={theme.primary}
@@ -438,7 +440,7 @@ export default function MetricsCharts({
               </p>
               <p style={{ margin: "0.5rem 0 0 0", color: theme.muted }}>
                 Reduction of{" "}
-                {metrics.aiMetrics?.timeSavedPercent?.toFixed(1) || 0}% compared
+                {metrics.aiMetrics?.timeSavedPercent?.toFixed(2) || 0}% compared
                 to original estimates.
               </p>
             </div>
