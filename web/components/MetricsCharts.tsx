@@ -619,18 +619,24 @@ export default function MetricsCharts({
 
           {developerCommitsData.length > 0 ? (
             <>
-              <ResponsiveContainer width="100%" height={320}>
+              <ResponsiveContainer width="100%" height={350}>
                 <BarChart
                   data={developerCommitsData}
-                  margin={{ top: 15, right: 10, left: -20, bottom: 40 }}
+                  margin={{ top: 15, right: 10, left: -20, bottom: 65 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis
                     dataKey="name"
                     angle={-45}
                     textAnchor="end"
+                    height={70}
                     interval={0}
                     style={{ fontSize: "0.75rem" }}
+                    tickFormatter={(name) => {
+                      const profile = metrics.commitMetrics?.developerProfiles?.[name];
+                      const username = profile?.username || name;
+                      return username.length > 18 ? `${username.substring(0, 15)}...` : username;
+                    }}
                   />
                   <YAxis allowDecimals={false} style={{ fontSize: "0.75rem" }} />
                   <Tooltip content={<CustomTooltip />} />
@@ -727,7 +733,10 @@ export default function MetricsCharts({
                               color: theme.text,
                             }}
                           >
-                            {dev.name}
+                            {(() => {
+                              const profile = metrics.commitMetrics?.developerProfiles?.[dev.name];
+                              return profile?.username ? `${dev.name} (${profile.username})` : dev.name;
+                            })()}
                           </td>
                           <td
                             style={{
@@ -883,18 +892,24 @@ export default function MetricsCharts({
           </div>
           {developerStoryPointsData.length > 0 ? (
             <>
-              <ResponsiveContainer width="100%" height={320}>
+              <ResponsiveContainer width="100%" height={350}>
                 <BarChart
                   data={developerStoryPointsData}
-                  margin={{ top: 15, right: 10, left: -20, bottom: 40 }}
+                  margin={{ top: 15, right: 10, left: -20, bottom: 65 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis
                     dataKey="name"
                     angle={-45}
                     textAnchor="end"
+                    height={70}
                     interval={0}
                     style={{ fontSize: "0.75rem" }}
+                    tickFormatter={(name) => {
+                      const profile = metrics.commitMetrics?.developerProfiles?.[name];
+                      const username = profile?.username || name;
+                      return username.length > 18 ? `${username.substring(0, 15)}...` : username;
+                    }}
                   />
                   <YAxis style={{ fontSize: "0.75rem" }} />
                   <Tooltip content={<CustomTooltip />} />
@@ -977,7 +992,10 @@ export default function MetricsCharts({
                               color: theme.text,
                             }}
                           >
-                            {dev.name}
+                            {(() => {
+                              const profile = metrics.commitMetrics?.developerProfiles?.[dev.name];
+                              return profile?.username ? `${dev.name} (${profile.username})` : dev.name;
+                            })()}
                           </td>
                           <td
                             style={{
@@ -1077,7 +1095,10 @@ export default function MetricsCharts({
                                 }}
                                 colSpan={4}
                               >
-                                {developer.assignee} —{" "}
+                                {(() => {
+                                  const profile = metrics.commitMetrics?.developerProfiles?.[developer.assignee];
+                                  return profile?.username ? `${developer.assignee} (${profile.username})` : developer.assignee;
+                                })()} —{" "}
                                 {developer.total_story_points.toFixed(1)} SP
                                 total
                               </td>

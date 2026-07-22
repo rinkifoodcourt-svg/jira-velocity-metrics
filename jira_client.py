@@ -162,7 +162,7 @@ class JiraClient:
             return None
         except Exception as e:
             print(f"Error fetching sprint: {e}")
-            return None
+            raise e
     
     def get_sprint_issues(self, board_id: str, sprint_id: int) -> List[Dict]:
         """Get all issues for a sprint using API v3"""
@@ -265,10 +265,36 @@ class JiraClient:
                     
                     assignee = fields.get('assignee')
                     assignee_name = None
+                    assignee_details = None
                     if isinstance(assignee, dict):
                         assignee_name = assignee.get('displayName') or assignee.get('emailAddress') or assignee.get('name')
+                        
+                        # Derive a classic readable username
+                        email_val = assignee.get('emailAddress')
+                        display_name_val = assignee.get('displayName') or ''
+                        username_val = assignee.get('name')
+                        
+                        if not username_val or ':' in username_val or '-' in username_val or len(username_val) > 25:
+                            if email_val:
+                                username_val = email_val.split('@')[0]
+                            elif display_name_val:
+                                clean_name = ''.join(c for c in display_name_val.strip().lower().replace(' ', '.') if c.isalnum() or c in '._-')
+                                username_val = clean_name
+                            else:
+                                username_val = 'unknown'
+                                
+                        assignee_details = {
+                            'displayName': assignee.get('displayName'),
+                            'username': username_val,
+                            'email': email_val
+                        }
                     elif isinstance(assignee, str):
                         assignee_name = assignee
+                        assignee_details = {
+                            'displayName': assignee,
+                            'username': assignee.strip().lower().replace(' ', '.'),
+                            'email': ''
+                        }
                     
                     issue_dict = {
                         'key': issue.get('key'),
@@ -282,6 +308,11 @@ class JiraClient:
                         'resolved': fields.get('resolutiondate'),
                         'labels': fields.get('labels', []),
                         'assignee': assignee_name or 'Unassigned',
+                        'assignee_details': assignee_details or {
+                            'displayName': 'Unassigned',
+                            'username': 'Unassigned',
+                            'email': ''
+                        },
                         'is_defect': issue_type.get('name', '').lower() in ['bug', 'defect', 'error'],
                     }
                     issue_data.append(issue_dict)
@@ -369,10 +400,36 @@ class JiraClient:
                 
                 assignee = fields.get('assignee')
                 assignee_name = None
+                assignee_details = None
                 if isinstance(assignee, dict):
                     assignee_name = assignee.get('displayName') or assignee.get('emailAddress') or assignee.get('name')
+                    
+                    # Derive a classic readable username
+                    email_val = assignee.get('emailAddress')
+                    display_name_val = assignee.get('displayName') or ''
+                    username_val = assignee.get('name')
+                    
+                    if not username_val or ':' in username_val or '-' in username_val or len(username_val) > 25:
+                        if email_val:
+                            username_val = email_val.split('@')[0]
+                        elif display_name_val:
+                            clean_name = ''.join(c for c in display_name_val.strip().lower().replace(' ', '.') if c.isalnum() or c in '._-')
+                            username_val = clean_name
+                        else:
+                            username_val = 'unknown'
+                            
+                    assignee_details = {
+                        'displayName': assignee.get('displayName'),
+                        'username': username_val,
+                        'email': email_val
+                    }
                 elif isinstance(assignee, str):
                     assignee_name = assignee
+                    assignee_details = {
+                        'displayName': assignee,
+                        'username': assignee.strip().lower().replace(' ', '.'),
+                        'email': ''
+                    }
                 
                 issue_dict = {
                     'key': issue.get('key'),
@@ -386,6 +443,11 @@ class JiraClient:
                     'resolved': fields.get('resolutiondate'),
                     'labels': fields.get('labels', []),
                     'assignee': assignee_name or 'Unassigned',
+                    'assignee_details': assignee_details or {
+                        'displayName': 'Unassigned',
+                        'username': 'Unassigned',
+                        'email': ''
+                    },
                     'is_defect': issue_type.get('name', '').lower() in ['bug', 'defect', 'error'],
                 }
                 issue_data.append(issue_dict)
