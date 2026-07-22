@@ -12,6 +12,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
+  LabelList,
 } from "recharts";
 import type { MetricsData } from "@/types";
 
@@ -97,10 +98,19 @@ export default function MetricsCharts({
 
   const sectionCardStyle = {};
 
-  const aiUsageData = [
+  const aiUsageRaw = [
     { name: "Actual with AI", value: actualWithAI, unit: "story points" },
     { name: "AI Saved", value: aiSaved, unit: "story points" },
   ].filter((item) => item.value > 0);
+
+  const totalAiUsage = aiUsageRaw.reduce((sum, item) => sum + item.value, 0);
+  const aiUsageData = aiUsageRaw.map((item) => ({
+    ...item,
+    percent:
+      totalAiUsage > 0
+        ? ((item.value / totalAiUsage) * 100).toFixed(1)
+        : "0.0",
+  }));
 
   // Prepare developer commits data
   const developerCommitsRaw = metrics.commitMetrics?.developerCommits || {};
@@ -115,7 +125,7 @@ export default function MetricsCharts({
     "na",
   ];
 
-  const developerCommitsData = Object.entries(developerCommitsRaw)
+  const developerCommitsFiltered = Object.entries(developerCommitsRaw)
     .map(([name, value]) => {
       const rawTicketCount = developerTicketCountsRaw[name];
       return {
@@ -143,10 +153,23 @@ export default function MetricsCharts({
     })
     .sort((a, b) => b.value - a.value);
 
+  const totalDevCommits = developerCommitsFiltered.reduce(
+    (sum, item) => sum + item.value,
+    0,
+  );
+
+  const developerCommitsData = developerCommitsFiltered.map((item) => ({
+    ...item,
+    percent:
+      totalDevCommits > 0
+        ? ((item.value / totalDevCommits) * 100).toFixed(1)
+        : "0.0",
+  }));
+
   console.log("[MetricsCharts] Developer commits data:", developerCommitsData);
 
   // Prepare story commits data
-  const storyCommitsData = Object.entries(
+  const storyCommitsFiltered = Object.entries(
     metrics.commitMetrics?.storyCommits || {},
   )
     .map(([name, value]) => ({ name, value: Number(value) || 0, unit: "commits" }))
@@ -154,10 +177,23 @@ export default function MetricsCharts({
     .sort((a, b) => b.value - a.value)
     .slice(0, 10);
 
+  const totalStoryCommits = storyCommitsFiltered.reduce(
+    (sum, item) => sum + item.value,
+    0,
+  );
+
+  const storyCommitsData = storyCommitsFiltered.map((item) => ({
+    ...item,
+    percent:
+      totalStoryCommits > 0
+        ? ((item.value / totalStoryCommits) * 100).toFixed(1)
+        : "0.0",
+  }));
+
   // Prepare developer story points data
   const developerStoryPointsRaw =
     metrics.commitMetrics?.developerStoryPoints || {};
-  const developerStoryPointsData = Object.entries(developerStoryPointsRaw)
+  const developerStoryPointsFiltered = Object.entries(developerStoryPointsRaw)
     .map(([name, value]) => ({ name, value: Number(value) || 0, unit: "story points" }))
     .filter((item) => {
       // Filter out invalid/placeholder developer names (same as commits)
@@ -177,37 +213,78 @@ export default function MetricsCharts({
     })
     .sort((a, b) => b.value - a.value);
 
+  const totalDevSP = developerStoryPointsFiltered.reduce(
+    (sum, item) => sum + item.value,
+    0,
+  );
+
+  const developerStoryPointsData = developerStoryPointsFiltered.map((item) => ({
+    ...item,
+    percent:
+      totalDevSP > 0
+        ? ((item.value / totalDevSP) * 100).toFixed(1)
+        : "0.0",
+  }));
+
   console.log(
     "[MetricsCharts] Developer story points data:",
     developerStoryPointsData,
   );
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      const tooltipUnit = payload[0]?.payload?.unit || "story points";
+      const dataItem = payload[0]?.payload;
+      const tooltipUnit = dataItem?.unit || "story points";
+      const percent = dataItem?.percent;
+      const tickets = dataItem?.tickets;
+
+      const displayName = label || payload[0].name;
+
       return (
         <div
           style={{
             background: theme.surface,
-            padding: "0.75rem",
+            padding: "0.75rem 1rem",
             border: `1px solid ${theme.primaryLight}`,
-            borderRadius: "6px",
-            boxShadow: "0 2px 4px rgba(37, 99, 235, 0.1)",
+            borderRadius: "8px",
+            boxShadow: "0 4px 12px rgba(37, 99, 235, 0.15)",
           }}
         >
-          <p style={{ margin: 0, fontWeight: "600", color: theme.text }}>
-            {payload[0].name}
+          <p style={{ margin: 0, fontWeight: "700", color: theme.text, fontSize: "0.95rem" }}>
+            {displayName}
           </p>
-          <p
+          <div
             style={{
-              margin: "0.25rem 0 0 0",
-              color: theme.primary,
-              fontWeight: "600",
+              marginTop: "0.35rem",
+              fontSize: "0.9rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
             }}
           >
-            {payload[0].value}{" "}
-            {tooltipUnit}
-          </p>
+            <span style={{ color: theme.primary, fontWeight: "600" }}>
+              {payload[0].value} {tooltipUnit}
+            </span>
+            {percent !== undefined && (
+              <span
+                style={{
+                  color: "#1E40AF",
+                  fontWeight: "700",
+                  background: theme.primaryLight,
+                  padding: "0.15rem 0.5rem",
+                  borderRadius: "6px",
+                  fontSize: "0.825rem",
+                }}
+              >
+                {percent}%
+              </span>
+            )}
+          </div>
+          {tickets !== undefined && tickets > 0 && (
+            <p style={{ margin: "0.35rem 0 0 0", fontSize: "0.8rem", color: theme.muted }}>
+              {tickets} ticket{tickets > 1 ? "s" : ""}
+            </p>
+          )}
         </div>
       );
     }
@@ -542,36 +619,30 @@ export default function MetricsCharts({
 
           {developerCommitsData.length > 0 ? (
             <>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={developerCommitsData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => {
-                      const displayName =
-                        name.length > 15 ? `${name.substring(0, 12)}...` : name;
-                      return `${displayName}: ${(percent * 100).toFixed(1)}%`;
-                    }}
-                    outerRadius={90}
-                    fill={theme.primary}
-                    dataKey="value"
-                  >
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart
+                  data={developerCommitsData}
+                  margin={{ top: 15, right: 10, left: -20, bottom: 40 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis
+                    dataKey="name"
+                    angle={-45}
+                    textAnchor="end"
+                    interval={0}
+                    style={{ fontSize: "0.75rem" }}
+                  />
+                  <YAxis allowDecimals={false} style={{ fontSize: "0.75rem" }} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="value" fill={theme.primary} radius={[6, 6, 0, 0]}>
                     {developerCommitsData.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[index % COLORS.length]}
                       />
                     ))}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend
-                    verticalAlign="bottom"
-                    align="center"
-                    wrapperStyle={{ marginTop: "1rem" }}
-                  />
-                </PieChart>
+                  </Bar>
+                </BarChart>
               </ResponsiveContainer>
 
               <div
@@ -812,34 +883,30 @@ export default function MetricsCharts({
           </div>
           {developerStoryPointsData.length > 0 ? (
             <>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={developerStoryPointsData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) =>
-                      `${name}: ${(percent * 100).toFixed(1)}%`
-                    }
-                    outerRadius={90}
-                    fill={theme.primary}
-                    dataKey="value"
-                  >
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart
+                  data={developerStoryPointsData}
+                  margin={{ top: 15, right: 10, left: -20, bottom: 40 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis
+                    dataKey="name"
+                    angle={-45}
+                    textAnchor="end"
+                    interval={0}
+                    style={{ fontSize: "0.75rem" }}
+                  />
+                  <YAxis style={{ fontSize: "0.75rem" }} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="value" fill={theme.primary} radius={[6, 6, 0, 0]}>
                     {developerStoryPointsData.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[index % COLORS.length]}
                       />
                     ))}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend
-                    verticalAlign="bottom"
-                    align="center"
-                    wrapperStyle={{ marginTop: "1rem" }}
-                  />
-                </PieChart>
+                  </Bar>
+                </BarChart>
               </ResponsiveContainer>
 
               {/* Developer Story Points Table */}
