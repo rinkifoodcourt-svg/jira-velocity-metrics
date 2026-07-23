@@ -8,25 +8,21 @@ export default function LoadingSpinner() {
       alignItems: 'center',
       minHeight: '100vh',
       flexDirection: 'column',
-      gap: '1rem'
+      gap: '1rem',
+      background: 'var(--dashboard-bg-gradient)'
     }}>
       <div style={{
         width: '50px',
         height: '50px',
-        border: '4px solid #f3f3f3',
-        borderTop: '4px solid #667eea',
+        border: '4px solid var(--dashboard-border)',
+        borderTop: '4px solid var(--dashboard-accent)',
         borderRadius: '50%',
         animation: 'spin 1s linear infinite'
       }} />
-      <p style={{ color: 'white', fontSize: '1.1rem', fontWeight: '500' }}>
+      <p style={{ color: 'var(--dashboard-text)', fontSize: '1.1rem', fontWeight: '600' }}>
         Loading Dashboard...
       </p>
-      <style jsx>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   )
 }
+

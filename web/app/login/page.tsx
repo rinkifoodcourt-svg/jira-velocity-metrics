@@ -42,40 +42,34 @@ function LoginPageContent() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
+      background: 'var(--dashboard-bg-gradient)',
       padding: '2rem'
     }}>
-      <div style={{
-        background: 'white',
-        borderRadius: '16px',
+      <div className="dashboard-card" style={{
         padding: '3rem',
-        boxShadow: '0 20px 60px rgba(37, 99, 235, 0.18)',
-        maxWidth: '400px',
+        maxWidth: '420px',
         width: '100%'
       }}>
         <h1 style={{
           fontSize: '2rem',
           fontWeight: 'bold',
           marginBottom: '0.5rem',
-          color: '#111827'
+          color: 'var(--dashboard-text)'
         }}>
           Jira Velocity Dashboard
         </h1>
         <p style={{
-          color: '#4B5563',
+          color: 'var(--dashboard-muted)',
           marginBottom: '2rem'
         }}>
           Sign in with your Atlassian account to access velocity metrics
         </p>
 
         {error && (
-          <div style={{
-            background: '#FEF2F2',
-            border: '1px solid #FECACA',
-            borderRadius: '8px',
+          <div className="dashboard-alert-soft" style={{
             padding: '1rem',
             marginBottom: '1.5rem',
-            color: '#B91C1C'
+            borderRadius: '12px'
           }}>
             {error}
           </div>
@@ -84,17 +78,13 @@ function LoginPageContent() {
         <button
           onClick={handleLogin}
           disabled={loading}
+          className="btn-dashboard-primary"
           style={{
             width: '100%',
             padding: '1rem',
-            background: loading ? '#DBEAFE' : 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
+            borderRadius: '12px',
             fontSize: '1.1rem',
-            fontWeight: 'bold',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            transition: 'all 0.3s ease'
+            cursor: loading ? 'not-allowed' : 'pointer'
           }}
         >
           {loading ? 'Redirecting...' : 'Login with Atlassian'}
@@ -103,7 +93,7 @@ function LoginPageContent() {
         <p style={{
           marginTop: '2rem',
           fontSize: '0.9rem',
-          color: '#6B7280',
+          color: 'var(--dashboard-muted)',
           textAlign: 'center'
         }}>
           You&apos;ll be redirected to Atlassian to sign in securely

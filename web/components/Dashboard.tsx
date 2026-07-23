@@ -55,6 +55,30 @@ export default function Dashboard() {
   const [user, setUser] = useState<{ email: string; name: string } | null>(
     null,
   );
+  const [theme, setTheme] = useState<"executiveLight" | "ivoryPlum" | "charcoal" | "oliveSage">(
+    "executiveLight"
+  );
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("jira_velocity_theme") as any;
+    if (
+      savedTheme &&
+      ["executiveLight", "ivoryPlum", "charcoal", "oliveSage"].includes(savedTheme)
+    ) {
+      setTheme(savedTheme);
+      document.documentElement.setAttribute("data-theme", savedTheme);
+    } else {
+      document.documentElement.setAttribute("data-theme", "executiveLight");
+    }
+  }, []);
+
+  const handleThemeChange = (
+    newTheme: "executiveLight" | "ivoryPlum" | "charcoal" | "oliveSage"
+  ) => {
+    setTheme(newTheme);
+    localStorage.setItem("jira_velocity_theme", newTheme);
+    document.documentElement.setAttribute("data-theme", newTheme);
+  };
 
   // Check authentication on mount (optional - only if OAuth is configured)
   // If OAuth is not configured, the app will use .env credentials automatically
@@ -82,6 +106,12 @@ export default function Dashboard() {
     // Don't auto-load data - wait for user to click Generate Report button
   }, []);
 
+  useEffect(() => {
+    if (selectedBoard) {
+      console.log("[Dashboard] Selected Board ID:", selectedBoard);
+    }
+  }, [selectedBoard]);
+
   const handleLogout = async () => {
     try {
       await apiLogout();
@@ -94,11 +124,18 @@ export default function Dashboard() {
     }
   };
 
+  const handleBoardChange = (boardId: string) => {
+    console.log("[Dashboard] Board ID changed to:", boardId);
+    setSelectedBoard(boardId);
+  };
+
   const handleGenerateReport = async () => {
     if (!selectedBoard) {
       setError("Please select a board");
       return;
     }
+
+    console.log("[Dashboard] Generating report for Board ID:", selectedBoard);
 
     // Save current metrics as cached/previous to show while loading
     if (metrics) {
@@ -111,7 +148,6 @@ export default function Dashboard() {
     setRefreshing(true);
 
     try {
-      console.log("Generating report for board:", selectedBoard);
       // Force refresh by adding refresh parameter
       const metricsData = await fetchMetrics(`${selectedBoard}?refresh=true`);
       console.log("Metrics received:", metricsData);
@@ -119,7 +155,7 @@ export default function Dashboard() {
       setCachedMetrics(null); // Clear cached after new data arrives
       setNewDataReady(true);
       // Auto-hide notification after 5 seconds
-      setTimeout(() => setNewDataReady(false), 5000);
+      setTimeout(() => setNewDataReady(false), 5001);
     } catch (err: any) {
       const errorMessage = err.message || "Failed to generate report";
       console.error("Error generating report:", err);
@@ -158,7 +194,7 @@ export default function Dashboard() {
         jsPDF = (await import("jspdf")).jsPDF;
       } catch (importError) {
         throw new Error(
-          "PDF libraries not loaded. Please run: cd web && npm install",
+          "PDF libraries not loaded. Please run: cd web && npm install"
         );
       }
 
@@ -173,7 +209,7 @@ export default function Dashboard() {
         scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: "#ffffff",
+        backgroundColor: document.documentElement.getAttribute("data-theme") === "charcoal" ? "#0B0F19" : "#ffffff",
         scrollX: -window.scrollX,
         scrollY: -window.scrollY,
         windowWidth: document.documentElement.scrollWidth,
@@ -181,7 +217,7 @@ export default function Dashboard() {
         width: dashboardElement.offsetWidth,
         height: dashboardElement.offsetHeight,
       });
- 
+
       // Create PDF
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({
@@ -189,19 +225,19 @@ export default function Dashboard() {
         unit: "mm",
         format: "a4",
       });
- 
+
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       const margin = 10;
       const imgWidth = pdfWidth - margin * 2;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
- 
+
       let heightLeft = imgHeight;
       let position = margin;
- 
+
       pdf.addImage(imgData, "PNG", margin, position, imgWidth, imgHeight);
       heightLeft -= pdfHeight;
- 
+
       while (heightLeft > 0) {
         position -= pdfHeight;
         pdf.addPage();
@@ -230,7 +266,7 @@ export default function Dashboard() {
         errorMessage.includes("chunk")
       ) {
         setError(
-          "PDF generation requires html2canvas. Please run: cd web && npm install && npm run build",
+          "PDF generation requires html2canvas. Please run: cd web && npm install && npm run build"
         );
       } else {
         setError(errorMessage);
@@ -247,7 +283,43 @@ export default function Dashboard() {
           <header className="dashboard-hero card border-0 p-3 p-lg-4">
             <div className="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
               <div className="flex-grow-1">
-                <span className="dashboard-pill px-3 py-2 mb-3">Velocity insights</span>
+                <div className="d-flex align-items-center gap-2 mb-3 flex-wrap">
+                  <span className="dashboard-pill px-3 py-2">Velocity insights</span>
+                  <div className="theme-selector-container">
+                    <button
+                      type="button"
+                      onClick={() => handleThemeChange("executiveLight")}
+                      className={`theme-pill-btn ${theme === "executiveLight" ? "active" : ""}`}
+                      title="Executive Light Theme"
+                    >
+                      ☀️ Executive Light
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleThemeChange("ivoryPlum")}
+                      className={`theme-pill-btn ${theme === "ivoryPlum" ? "active" : ""}`}
+                      title="Ivory & Plum Theme"
+                    >
+                      🍇 Ivory & Plum
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleThemeChange("charcoal")}
+                      className={`theme-pill-btn ${theme === "charcoal" ? "active" : ""}`}
+                      title="Charcoal Dark Theme"
+                    >
+                      🌙 Charcoal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleThemeChange("oliveSage")}
+                      className={`theme-pill-btn ${theme === "oliveSage" ? "active" : ""}`}
+                      title="Olive & Sage Theme"
+                    >
+                      🌿 Olive & Sage
+                    </button>
+                  </div>
+                </div>
                 <h1 className="display-6 fw-bold mb-3">Jira Velocity Dashboard</h1>
                 <p className="lead dashboard-subtle mb-0">
                   Track AI story point savings, developer contributions, and
@@ -258,7 +330,7 @@ export default function Dashboard() {
               {user && (
                 <div className="dashboard-user-pill d-flex align-items-center gap-3">
                   <div className="text-end">
-                    <div className="fw-semibold text-dark">
+                    <div className="fw-semibold">
                       {user.name || user.email}
                     </div>
                     <div className="small dashboard-subtle">{user.email}</div>
@@ -278,7 +350,7 @@ export default function Dashboard() {
                 <BoardSelector
                   boards={boards}
                   selectedBoard={selectedBoard}
-                  onBoardChange={setSelectedBoard}
+                  onBoardChange={handleBoardChange}
                   onGenerate={handleGenerateReport}
                   loading={loading}
                 />

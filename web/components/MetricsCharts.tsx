@@ -21,38 +21,104 @@ interface MetricsChartsProps {
   isLoading?: boolean;
 }
 
-const theme = {
-  primary: "#2563EB",
-  primaryHover: "#1D4ED8",
-  primaryLight: "#DBEAFE",
-  success: "#10B981",
-  warning: "#F59E0B",
-  danger: "#EF4444",
-  chartAiSaved: "#06B6D4",
-  chartActualAi: "#8B5CF6",
-  surface: "#FFFFFF",
-  background: "#F8FAFC",
-  text: "#111827",
-  muted: "#475569",
+const getThemeColors = (activeTheme: string) => {
+  if (activeTheme === "ivoryPlum") {
+    return {
+      primary: "#6B21A8",
+      primaryHover: "#581C87",
+      primaryLight: "#F3E8FF",
+      success: "#059669",
+      warning: "#D97706",
+      danger: "#E11D48",
+      chartAiSaved: "#C026D3",
+      chartActualAi: "#A855F7",
+      surface: "#FFFFFF",
+      background: "#FDFBF7",
+      text: "#2D063B",
+      muted: "#6B5B75",
+      colors: ["#C026D3", "#6B21A8", "#059669", "#D97706", "#A855F7", "#E11D48", "#9333EA", "#7E22CE"],
+    };
+  } else if (activeTheme === "charcoal") {
+    return {
+      primary: "#38BDF8",
+      primaryHover: "#0EA5E9",
+      primaryLight: "rgba(56, 189, 248, 0.18)",
+      success: "#34D399",
+      warning: "#FBBF24",
+      danger: "#F87171",
+      chartAiSaved: "#38BDF8",
+      chartActualAi: "#A78BFA",
+      surface: "#1E293B",
+      background: "#0B0F19",
+      text: "#F8FAFC",
+      muted: "#94A3B8",
+      colors: ["#38BDF8", "#818CF8", "#34D399", "#FBBF24", "#A78BFA", "#F87171", "#60A5FA", "#C084FC"],
+    };
+  } else if (activeTheme === "oliveSage") {
+    return {
+      primary: "#59842A",
+      primaryHover: "#507D23",
+      primaryLight: "#EAF2E3",
+      success: "#507D23",
+      warning: "#D97706",
+      danger: "#E0352A",
+      chartAiSaved: "#59842A",
+      chartActualAi: "#E0352A",
+      surface: "#FFFFFF",
+      background: "#F2F0ED",
+      text: "#1A1A1A",
+      muted: "#474747",
+      colors: ["#59842A", "#1A1A1A", "#E0352A", "#507D23", "#474747", "#DEDEDE", "#2D2D2D", "#808080"],
+    };
+  }
+  return {
+    primary: "#2563EB",
+    primaryHover: "#1D4ED8",
+    primaryLight: "#DBEAFE",
+    success: "#10B981",
+    warning: "#F59E0B",
+    danger: "#EF4444",
+    chartAiSaved: "#06B6D4",
+    chartActualAi: "#8B5CF6",
+    surface: "#FFFFFF",
+    background: "#F8FAFC",
+    text: "#0F172A",
+    muted: "#475569",
+    colors: ["#06B6D4", "#2563EB", "#10B981", "#F59E0B", "#8B5CF6", "#EF4444", "#3B82F6", "#0284C7"],
+  };
 };
 
-const COLORS = [
-  theme.chartAiSaved,
-  theme.primary,
-  theme.success,
-  theme.warning,
-  theme.chartActualAi,
-  theme.danger,
-  theme.primaryLight,
-  theme.primaryHover,
-  theme.success,
-  theme.chartAiSaved,
-];
+import { useState, useEffect } from "react";
 
 export default function MetricsCharts({
   metrics,
   isLoading = false,
 }: MetricsChartsProps) {
+  const [activeTheme, setActiveTheme] = useState("executiveLight");
+
+  useEffect(() => {
+    const current =
+      typeof document !== "undefined"
+        ? document.documentElement.getAttribute("data-theme") || "executiveLight"
+        : "executiveLight";
+    setActiveTheme(current);
+
+    const observer = new MutationObserver(() => {
+      const updated =
+        document.documentElement.getAttribute("data-theme") || "executiveLight";
+      setActiveTheme(updated);
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  const theme = getThemeColors(activeTheme);
+  const COLORS = theme.colors;
   // Debug logging
   console.log("[MetricsCharts] Metrics data:", {
     hasCommitMetrics: !!metrics.commitMetrics,
@@ -311,40 +377,40 @@ export default function MetricsCharts({
       <div className="row g-3 mt-2 mx-0">
         <div className="col-12 col-md-6 col-xl-3">
           <div className="dashboard-metric-card p-3 h-100">
-            <div className="small fw-semibold mb-2" style={{ color: theme.warning }}>
+            <div className="dashboard-metric-title mb-2">
               Story Points Committed
             </div>
-            <div className="display-6 fw-bold" style={{ color: theme.text }}>
+            <div className="display-6 fw-bold">
               {metrics.currentSprint?.committedStoryPoints || 0}
             </div>
           </div>
         </div>
         <div className="col-12 col-md-6 col-xl-3">
           <div className="dashboard-metric-card p-3 h-100">
-            <div className="small fw-semibold mb-2" style={{ color: theme.warning }}>
+            <div className="dashboard-metric-title mb-2">
               Story Points Completed
             </div>
-            <div className="display-6 fw-bold" style={{ color: theme.text }}>
+            <div className="display-6 fw-bold">
               {metrics.currentSprint?.completedStoryPoints || 0}
             </div>
           </div>
         </div>
         <div className="col-12 col-md-6 col-xl-3">
           <div className="dashboard-metric-card p-3 h-100">
-            <div className="small fw-semibold mb-2" style={{ color: theme.warning }}>
+            <div className="dashboard-metric-title mb-2">
               Completion Rate
             </div>
-            <div className="display-6 fw-bold" style={{ color: theme.text }}>
+            <div className="display-6 fw-bold">
               {metrics.currentSprint?.completionRate || 0}%
             </div>
           </div>
         </div>
         <div className="col-12 col-md-6 col-xl-3">
           <div className="dashboard-metric-card p-3 h-100">
-            <div className="small fw-semibold mb-2" style={{ color: theme.warning }}>
+            <div className="dashboard-metric-title mb-2">
               Total Commits
             </div>
-            <div className="display-6 fw-bold" style={{ color: theme.text }}>
+            <div className="display-6 fw-bold">
               {metrics.commitMetrics?.totalCommits || 0}
             </div>
           </div>
