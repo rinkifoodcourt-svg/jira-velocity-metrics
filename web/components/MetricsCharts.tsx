@@ -1198,6 +1198,16 @@ export default function MetricsCharts({
                                   }}
                                 >
                                   {(story.aiStoryPoints ?? story.storyPoints).toFixed(1)} SP
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "0.85rem 1rem",
+                                    textAlign: "right",
+                                    color: theme.primary,
+                                    fontWeight: "700",
+                                  }}
+                                >
+                                  {story.storyPoints.toFixed(1)} SP
                                   {story.aiPointsSaved && story.aiPointsSaved > 0 ? (
                                     <span
                                       style={{
@@ -1210,16 +1220,6 @@ export default function MetricsCharts({
                                       ({story.aiPointsSaved.toFixed(1)} saved)
                                     </span>
                                   ) : null}
-                                </td>
-                                <td
-                                  style={{
-                                    padding: "0.85rem 1rem",
-                                    textAlign: "right",
-                                    color: theme.primary,
-                                    fontWeight: "700",
-                                  }}
-                                >
-                                  {story.storyPoints.toFixed(1)} SP
                                 </td>
                                 <td
                                   style={{
