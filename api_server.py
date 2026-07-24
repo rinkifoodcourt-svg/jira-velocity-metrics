@@ -13,6 +13,15 @@ Usage:
 
 Note: Flask must be installed in the environment (pip install flask). This server calls into the existing main.generate_report_for_team function.
 """
+import os
+import tempfile
+
+# Ensure a valid, writable temporary directory exists for Werkzeug/multiprocessing
+workspace_tmp = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.tmp')
+os.makedirs(workspace_tmp, exist_ok=True)
+os.environ['TMPDIR'] = workspace_tmp
+tempfile.tempdir = workspace_tmp
+
 from flask import Flask, request, jsonify
 from threading import Thread
 import traceback
@@ -240,6 +249,11 @@ def api_metrics(board_id):
                         assignee = issue.get('assignee', 'Unassigned') or 'Unassigned'
                         story_key = issue.get('key')
                         story_points = issue.get('story_points', 0) or 0
+                        ai_sp = issue.get('ai_story_points')
+                        ai_saved = issue.get('ai_points_saved', 0) or 0
+                        if ai_sp is None and story_points is not None:
+                            ai_sp = story_points + ai_saved
+
                         if assignee not in developers:
                             developers[assignee] = {
                                 'assignee': assignee,
@@ -251,6 +265,8 @@ def api_metrics(board_id):
                             developers[assignee]['issues'].append({
                                 'storyId': story_key,
                                 'storyPoints': story_points,
+                                'aiStoryPoints': round(ai_sp, 2) if ai_sp is not None else story_points,
+                                'aiPointsSaved': round(ai_saved, 2),
                                 'percentage': round((story_points / total_committed_story_points) * 100, 2),
                                 'issueFoundation': issue.get('summary', '')
                             })

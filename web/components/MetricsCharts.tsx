@@ -72,15 +72,22 @@ export default function MetricsCharts({
   const completionRate = metrics.currentSprint?.completionRate || 0;
   const committedPoints = metrics.currentSprint?.committedStoryPoints || 0;
   const completedPoints = metrics.currentSprint?.completedStoryPoints || 0;
+  const overallStoryPoints =
+    metrics.aiMetrics?.aiStoryPointsCommitted || (committedPoints + aiSaved);
 
   const summaryCards = [
     {
-      title: "Story Points Committed",
+      title: "Overall Story Points",
+      value: `${Math.round(overallStoryPoints)} SP`,
+      subtitle: "Total estimated story points including AI saved points",
+    },
+    {
+      title: "Committed Story Points (AI)",
       value: `${committedPoints.toFixed(1)} SP`,
       subtitle: "Total story points committed this sprint",
     },
     {
-      title: "Story Points Completed",
+      title: "Completed Story Points",
       value: `${completedPoints.toFixed(1)} SP`,
       subtitle: "Total story points completed this sprint",
     },
@@ -99,8 +106,8 @@ export default function MetricsCharts({
   const sectionCardStyle = {};
 
   const aiUsageRaw = [
-    { name: "Actual with AI", value: actualWithAI, unit: "story points" },
-    { name: "AI Saved", value: aiSaved, unit: "story points" },
+    { name: "Actual SP (AI)", value: actualWithAI, unit: "story points" },
+    { name: "Points Saved by AI", value: aiSaved, unit: "story points" },
   ].filter((item) => item.value > 0);
 
   const totalAiUsage = aiUsageRaw.reduce((sum, item) => sum + item.value, 0);
@@ -311,27 +318,37 @@ export default function MetricsCharts({
       </div>
 
       <div className="row g-3 mt-2 mx-0">
-        <div className="col-12 col-md-6 col-xl-3">
+        <div className="col-12 col-sm-6 col-lg-4 col-xl">
           <div className="dashboard-metric-card p-3 h-100">
             <div className="small fw-semibold mb-2" style={{ color: theme.warning }}>
-              Story Points Committed
+              Overall Story Points
+            </div>
+            <div className="display-6 fw-bold" style={{ color: theme.text }}>
+              {Math.round(overallStoryPoints)}
+            </div>
+          </div>
+        </div>
+        <div className="col-12 col-sm-6 col-lg-4 col-xl">
+          <div className="dashboard-metric-card p-3 h-100">
+            <div className="small fw-semibold mb-2" style={{ color: theme.warning }}>
+              Committed Story Points (AI)
             </div>
             <div className="display-6 fw-bold" style={{ color: theme.text }}>
               {metrics.currentSprint?.committedStoryPoints || 0}
             </div>
           </div>
         </div>
-        <div className="col-12 col-md-6 col-xl-3">
+        <div className="col-12 col-sm-6 col-lg-4 col-xl">
           <div className="dashboard-metric-card p-3 h-100">
             <div className="small fw-semibold mb-2" style={{ color: theme.warning }}>
-              Story Points Completed
+              Completed Story Points
             </div>
             <div className="display-6 fw-bold" style={{ color: theme.text }}>
               {metrics.currentSprint?.completedStoryPoints || 0}
             </div>
           </div>
         </div>
-        <div className="col-12 col-md-6 col-xl-3">
+        <div className="col-12 col-sm-6 col-lg-4 col-xl">
           <div className="dashboard-metric-card p-3 h-100">
             <div className="small fw-semibold mb-2" style={{ color: theme.warning }}>
               Completion Rate
@@ -341,7 +358,7 @@ export default function MetricsCharts({
             </div>
           </div>
         </div>
-        <div className="col-12 col-md-6 col-xl-3">
+        <div className="col-12 col-sm-6 col-lg-4 col-xl">
           <div className="dashboard-metric-card p-3 h-100">
             <div className="small fw-semibold mb-2" style={{ color: theme.warning }}>
               Total Commits
@@ -380,12 +397,14 @@ export default function MetricsCharts({
                 </h3>
                 <p
                   style={{
-                    margin: "0.5rem 0 0 0",
+                    margin: "0.25rem 0 0 0",
                     color: theme.muted,
-                    fontSize: "0.95rem",
+                    fontSize: "0.88rem",
                   }}
                 >
-                  View the impact of AI story-point estimates across the sprint.
+                  Visualizes the proportion of actual story points delivered vs points saved using AI tools.
+                  <br />
+                  Provides an executive overview of overall team effort reduction and efficiency gains.
                 </p>
               </div>
             </div>
@@ -428,7 +447,7 @@ export default function MetricsCharts({
                 color: theme.muted,
               }}
             >
-              <p style={{ margin: 0, fontWeight: 700 }}>Time Saved</p>
+              <p style={{ margin: 0, fontWeight: 700 }}>Points Saved by AI</p>
               <p
                 style={{
                   margin: "0.5rem 0 0 0",
@@ -452,15 +471,20 @@ export default function MetricsCharts({
           <div className="col-12 col-xl-4">
             <div className="dashboard-card p-3 h-100">
               <h3
-              style={{
-                fontSize: "1.35rem",
-                fontWeight: "700",
-                color: theme.text,
-                marginBottom: "1rem",
-              }}
-            >
-              AI Usage by Assignee
-            </h3>
+                style={{
+                  fontSize: "1.35rem",
+                  fontWeight: "700",
+                  color: theme.text,
+                  margin: "0 0 0.25rem 0",
+                }}
+              >
+                AI Usage by Assignee
+              </h3>
+              <p style={{ margin: "0 0 1rem 0", color: theme.muted, fontSize: "0.88rem" }}>
+                Summarizes AI adoption impact per developer across estimated vs actual story points.
+                <br />
+                Highlights points saved and efficiency percentage achieved by each assignee.
+              </p>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
@@ -473,7 +497,7 @@ export default function MetricsCharts({
                         fontSize: "0.9rem",
                       }}
                     >
-                      Assignee
+                      Developer
                     </th>
                     <th
                       style={{
@@ -483,7 +507,7 @@ export default function MetricsCharts({
                         fontSize: "0.9rem",
                       }}
                     >
-                      Estimated SP (Without AI)
+                      Estimated Story Points
                     </th>
                     <th
                       style={{
@@ -493,7 +517,7 @@ export default function MetricsCharts({
                         fontSize: "0.9rem",
                       }}
                     >
-                      Actual SP (AI)
+                      Actual Story Points (AI)
                     </th>
                     <th
                       style={{
@@ -503,7 +527,7 @@ export default function MetricsCharts({
                         fontSize: "0.9rem",
                       }}
                     >
-                      Time Saved (SP)
+                      Points Saved (SP)
                     </th>
                     <th
                       style={{
@@ -513,7 +537,7 @@ export default function MetricsCharts({
                         fontSize: "0.9rem",
                       }}
                     >
-                      Saved %
+                      Saved (%)
                     </th>
                   </tr>
                 </thead>
@@ -608,13 +632,14 @@ export default function MetricsCharts({
               </h3>
               <p
                 style={{
-                  margin: "0.5rem 0 0 0",
+                  margin: "0.25rem 0 0 0",
                   color: theme.muted,
-                  fontSize: "0.95rem",
+                  fontSize: "0.88rem",
                 }}
               >
-                Commit activity reveals the team’s sprint engagement and story
-                coverage.
+                Ranks developer code contribution volume based on total git commits in the current sprint.
+                <br />
+                Helps identify active sprint participation, commit frequency, and story progress.
               </p>
             </div>
           </div>
@@ -653,9 +678,17 @@ export default function MetricsCharts({
                 </BarChart>
               </ResponsiveContainer>
 
+              <h4 style={{ margin: "1.5rem 0 0.25rem 0", color: theme.text }}>
+                Developer Commits Breakdown
+              </h4>
+              <p style={{ margin: "0 0 0.75rem 0", color: theme.muted, fontSize: "0.88rem" }}>
+                Displays total git commits authored per developer during the active sprint.
+                <br />
+                Reflects developer engagement levels and proportional code commit distribution.
+              </p>
               <div
                 style={{
-                  marginTop: "1.5rem",
+                  marginTop: "0.5rem",
                   overflow: "hidden",
                   borderRadius: "14px",
                   border: `1px solid ${theme.primaryLight}`,
@@ -687,7 +720,7 @@ export default function MetricsCharts({
                           fontSize: "0.9rem",
                         }}
                       >
-                        Tickets
+                        Tickets Worked
                       </th>
                       <th
                         style={{
@@ -697,7 +730,7 @@ export default function MetricsCharts({
                           fontSize: "0.9rem",
                         }}
                       >
-                        Commits
+                        Total Commits
                       </th>
                       <th
                         style={{
@@ -707,7 +740,7 @@ export default function MetricsCharts({
                           fontSize: "0.9rem",
                         }}
                       >
-                        Commits %
+                        % of Sprint Commits
                       </th>
                     </tr>
                   </thead>
@@ -882,13 +915,14 @@ export default function MetricsCharts({
               </h3>
               <p
                 style={{
-                  margin: "0.5rem 0 0 0",
+                  margin: "0.25rem 0 0 0",
                   color: theme.muted,
-                  fontSize: "0.95rem",
+                  fontSize: "0.88rem",
                 }}
               >
-                Story point allocation by developer, with issue-level context
-                for each ticket.
+                Compares the distribution of actual story points completed across all team members.
+                <br />
+                Highlights relative workload balance and individual output across active sprint tasks.
               </p>
             </div>
           </div>
@@ -926,10 +960,16 @@ export default function MetricsCharts({
                 </BarChart>
               </ResponsiveContainer>
 
-              {/* Developer Story Points Table */}
+              <h4 style={{ margin: "1.5rem 0 0.25rem 0", color: theme.text }}>
+                Developer Story Points Summary
+              </h4>
+              <p style={{ margin: "0 0 0.75rem 0", color: theme.muted, fontSize: "0.88rem" }}>
+                Aggregates total story points allocated to each developer across the sprint.
+                <br />
+                Provides high-level visibility into individual workload distribution and capacity share.
+              </p>
               <div
                 style={{
-                  marginTop: "1.5rem",
                   overflow: "hidden",
                   borderRadius: "14px",
                   border: `1px solid ${theme.primaryLight}`,
@@ -956,7 +996,7 @@ export default function MetricsCharts({
                           fontSize: "0.9rem",
                         }}
                       >
-                        Story Points
+                        Actual Story Points (AI)
                       </th>
                       <th
                         style={{
@@ -966,7 +1006,7 @@ export default function MetricsCharts({
                           fontSize: "0.9rem",
                         }}
                       >
-                        Story Points %
+                        % of Sprint Total
                       </th>
                     </tr>
                   </thead>
@@ -1027,9 +1067,14 @@ export default function MetricsCharts({
 
               {developerStoryPointsByIssueData.length > 0 && (
                 <div style={{ marginTop: "1.5rem" }}>
-                  <h4 style={{ margin: "1rem 0 0.75rem 0", color: theme.text }}>
+                  <h4 style={{ margin: "1.5rem 0 0.25rem 0", color: theme.text }}>
                     Developer Issue Breakdown
                   </h4>
+                  <p style={{ margin: "0 0 0.75rem 0", color: theme.muted, fontSize: "0.88rem" }}>
+                    Breaks down individual Jira issues grouped by assignee with story point estimates.
+                    <br />
+                    Tracks estimated vs actual story points and percentage contribution to the sprint total.
+                  </p>
                   <div style={{ overflowX: "auto" }}>
                     <table
                       style={{
@@ -1048,7 +1093,7 @@ export default function MetricsCharts({
                               fontSize: "0.9rem",
                             }}
                           >
-                            Story ID
+                            Issue Key
                           </th>
                           <th
                             style={{
@@ -1058,7 +1103,7 @@ export default function MetricsCharts({
                               fontSize: "0.9rem",
                             }}
                           >
-                            Issue Header
+                            Issue Summary
                           </th>
                           <th
                             style={{
@@ -1068,7 +1113,7 @@ export default function MetricsCharts({
                               fontSize: "0.9rem",
                             }}
                           >
-                            Story Points
+                            Estimated Story Points
                           </th>
                           <th
                             style={{
@@ -1078,7 +1123,17 @@ export default function MetricsCharts({
                               fontSize: "0.9rem",
                             }}
                           >
-                            Individual Story Point %
+                            Actual Story Points (AI)
+                          </th>
+                          <th
+                            style={{
+                              padding: "0.85rem 1rem",
+                              textAlign: "right",
+                              fontWeight: "700",
+                              fontSize: "0.9rem",
+                            }}
+                          >
+                            % of Sprint Total
                           </th>
                         </tr>
                       </thead>
@@ -1095,7 +1150,7 @@ export default function MetricsCharts({
                                   fontWeight: "700",
                                   color: "#1e293b",
                                 }}
-                                colSpan={4}
+                                colSpan={5}
                               >
                                 {(() => {
                                   const profile = metrics.commitMetrics?.developerProfiles?.[developer.assignee];
@@ -1133,6 +1188,28 @@ export default function MetricsCharts({
                                   }}
                                 >
                                   {story.issueFoundation || "—"}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "0.85rem 1rem",
+                                    textAlign: "right",
+                                    color: theme.chartActualAi || "#0284c7",
+                                    fontWeight: "700",
+                                  }}
+                                >
+                                  {(story.aiStoryPoints ?? story.storyPoints).toFixed(1)} SP
+                                  {story.aiPointsSaved && story.aiPointsSaved > 0 ? (
+                                    <span
+                                      style={{
+                                        display: "block",
+                                        fontSize: "0.75rem",
+                                        color: theme.success || "#16a34a",
+                                        fontWeight: "600",
+                                      }}
+                                    >
+                                      ({story.aiPointsSaved.toFixed(1)} saved)
+                                    </span>
+                                  ) : null}
                                 </td>
                                 <td
                                   style={{
@@ -1200,12 +1277,17 @@ export default function MetricsCharts({
               fontSize: "1.25rem",
               fontWeight: "600",
               color: "#2d3748",
-              marginBottom: "1rem",
+              margin: "0 0 0.25rem 0",
               textAlign: "center",
             }}
           >
             Commits by Story (Top 10)
           </h3>
+          <p style={{ margin: "0 0 1rem 0", color: theme.muted, fontSize: "0.88rem", textAlign: "center" }}>
+            Displays the top 10 Jira stories with the highest number of linked git commits.
+            <br />
+            Highlights code churn and development focus areas across individual sprint tickets.
+          </p>
           <ResponsiveContainer width="100%" height={400}>
             <BarChart data={storyCommitsData}>
               <CartesianGrid strokeDasharray="3 3" />

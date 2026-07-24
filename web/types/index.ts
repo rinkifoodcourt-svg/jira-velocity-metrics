@@ -36,6 +36,8 @@ export interface AIMetrics {
 export interface StoryPointDetail {
   storyId: string
   storyPoints: number
+  aiStoryPoints?: number
+  aiPointsSaved?: number
   percentage: number
   issueFoundation?: string
 }
